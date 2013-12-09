@@ -9,6 +9,7 @@ package Statistics is
 private
    type Data is record
       To_GPU, To_CPU : Natural := 0;
+      Aimless : Natural := 0;
    end record;
 
    Global_Stats : Data;

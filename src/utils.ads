@@ -13,6 +13,7 @@ package Utils is
 
    function Random return Ada.Numerics.Float_Random.Uniformly_Distributed;
    procedure Init_Random;
+   function Now return String;
 
    procedure Check_Options;
 

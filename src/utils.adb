@@ -2,6 +2,8 @@ with Ada.Text_IO; use Ada.Text_IO;
 with Ada.Command_Line; use Ada.Command_Line;
 with POSIX.Process_Primitives;
 with Ada.Numerics; use Ada.Numerics;
+with GNAT.Calendar.Time_IO; use GNAT.Calendar.Time_IO;
+with Ada.Calendar;
 
 
 package body Utils is
@@ -84,6 +86,13 @@ package body Utils is
    begin
       Float_Random.Reset (Random_Generator);
    end Init_Random;
+
+
+   function Now return String is
+      Raw_Time : constant Picture_String := "%s";
+   begin
+      return Image (Date => Ada.Calendar.Clock, Picture => Raw_Time);
+   end Now;
 
 
 end Utils;
