@@ -19,6 +19,18 @@ package body Utils is
       end if;
    end Debug;
 
+   -------------
+   -- Dry_Run --
+   -------------
+
+   function Dry_Run (Message : String) return Boolean is
+   begin
+      if not Action then
+         Ada.Text_IO.Put_Line (Message);
+      end if;
+      return not Action;
+   end Dry_Run;
+
    ---------------------
    -- Verbose_Message --
    ---------------------
@@ -53,6 +65,9 @@ package body Utils is
          elsif Argument (Arg) = "-v" or else
            Argument (Arg) = "--verbose" then
             Verbose := True;
+         elsif Argument (Arg) = "-n" or else
+           Argument (Arg) = "--no-action" then
+            Action := False;
          elsif Argument (Arg) = "-s" or else
            Argument (Arg) = "--statistics" then
             Stats := True;
@@ -62,6 +77,9 @@ package body Utils is
                                   & "and the first letter only");
             Ada.Text_IO.Put_Line ("--debug gives debugging output");
             Ada.Text_IO.Put_Line ("--verbose states which actions are taken");
+            Ada.Text_IO.Put_Line ("--no-action only goes through the motions "
+                                  & "without actually calling qmod or cmsh; "
+                                  & " implies --verbose");
             Ada.Text_IO.Put_Line ("--statistics shows a summary of what has been done");
             Ada.Text_IO.Put_Line ("--help shows this message, then terminates");
             POSIX.Process_Primitives.Exit_Process;
