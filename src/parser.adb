@@ -26,7 +26,7 @@ package body Parser is
    is
       Requirements : Unbounded_String := To_Unbounded_String (Get_ID (Job));
       Output       : SGE.Spread_Sheets.Spread_Sheet;
-      Timestamp    : constant String := "-sc LASTMIG=" & Utils.Now;
+      Timestamp    : constant String := " -sc LASTMIG=" & Utils.Now;
       pragma Unreferenced (Output);
       -- Can we do something useful with the output?
    begin
@@ -41,8 +41,8 @@ package body Parser is
          Requirements := Requirements & " -l " & Insecure_Resources;
       end if;
       if not Utils.Dry_Run ("qalter " & To_String (Requirements) & Timestamp) then
-         Output := SGE.Parser.Setup_No_XML (Command => "qalter",
-                                            Selector =>  To_String (Requirements) & Timestamp);
+         Output := SGE.Parser.Setup_No_XML (Command => "qalter", Subpath => "/bin/linux-x64/",
+                                            Selector => To_String (Requirements) & Timestamp);
       end if;
    exception
       when E : SGE.Parser.Parser_Error =>
@@ -62,6 +62,7 @@ package body Parser is
       if Get_Context (J, "PENDINGSINCE") = "" then
          if not Utils.Dry_Run ("qalter "  & Params) then
             Output := SGE.Parser.Setup_No_XML (Command => "qalter",
+                                               Subpath => "/bin/linux-x64/",
                                                Selector => Params);
          end if;
       end if;

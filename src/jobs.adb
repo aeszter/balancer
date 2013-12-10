@@ -24,7 +24,7 @@ package body Jobs is
    procedure Init is
       SGE_Out : SGE.Parser.Tree;
    begin
-      SGE_Out := SGE.Parser.Setup (Selector => "-u * -s p");
+      SGE_Out := SGE.Parser.Setup (Selector => "-u * -r -s p");
       Append_List (SGE.Parser.Get_Job_Nodes_From_Qstat_U (SGE_Out));
       SGE.Parser.Free;
       SGE_Out := SGE.Parser.Setup (Selector => "-j *");
@@ -76,7 +76,8 @@ package body Jobs is
 
    function Is_Eligible (J : Job) return Boolean is
    begin
-      return Supports_Balancer (J);
+      return not On_Hold (J)
+        and then Supports_Balancer (J);
    end Is_Eligible;
 
    function Queued_For_CPU (J : Job) return Boolean is
@@ -96,7 +97,7 @@ package body Jobs is
    begin
       New_Resources.Delete (Key => To_Unbounded_String ("gpu"));
       Parser.Alter_Job (Job                => J,
-                        Insecure_Resources => SGE.Resources.To_String (New_Resources),
+                        Insecure_Resources => Resources.To_Requirement (New_Resources),
                         Slots              => Comma_Convert (
                           Get_Context (J => J, Key => "SLOTSCPU")));
    end Migrate_To_CPU;
