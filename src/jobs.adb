@@ -63,7 +63,10 @@ package body Jobs is
          Ada.Text_IO.Put_Line (Exception_Message (E) & " while processing job" & Get_ID (J));
       when E : Support_Error =>
          Ada.Text_IO.Put_Line ("Job" & Get_ID (J) & " unexpectedly lacks Balancer support: "
-                                 & Exception_Message (E));
+                               & Exception_Message (E));
+      when E : others =>
+         Ada.Text_IO.Put_Line ("unexcpected error in job" & Get_ID (J) & ": "
+                               & Exception_Message (E));
    end Balance_One_Job;
 
    procedure Balance is

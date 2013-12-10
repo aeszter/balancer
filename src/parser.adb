@@ -1,4 +1,6 @@
 with Ada.Characters.Handling;
+with Ada.Text_IO;
+with Ada.Exceptions; use Ada.Exceptions;
 with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 with SGE.Parser;
 with SGE.Spread_Sheets;
@@ -42,6 +44,13 @@ package body Parser is
          Output := SGE.Parser.Setup_No_XML (Command => "qalter",
                                             Selector =>  To_String (Requirements) & Timestamp);
       end if;
+   exception
+      when E : SGE.Parser.Parser_Error =>
+         Ada.Text_IO.Put_Line ("Could not alter job " & Get_ID (Job));
+         Utils.Verbose_Message (Exception_Message (E));
+      when E : others =>
+         Ada.Text_IO.Put_Line ("Unknown error in Parser.Alter_Job (" & Get_ID (Job) & "): ");
+         Ada.Text_IO.Put_Line (Exception_Message (E));
    end Alter_Job;
 
    procedure Add_Pending_Since (J : Job) is
@@ -56,6 +65,13 @@ package body Parser is
                                                Selector => Params);
          end if;
       end if;
+   exception
+      when E : SGE.Parser.Parser_Error =>
+         Ada.Text_IO.Put_Line ("Could not timestamp job " & Get_ID (J));
+         Utils.Verbose_Message (Exception_Message (E));
+      when E : others =>
+         Ada.Text_IO.Put_Line ("Unknown error in Parser.Add_Pending_Since (" & Get_ID (J) & "): ");
+         Ada.Text_IO.Put_Line (Exception_Message (E));
    end Add_Pending_Since;
 
 
