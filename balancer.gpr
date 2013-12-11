@@ -1,0 +1,52 @@
+with "../florist/lib/gnat/florist";
+with "../sgelib/sgelib";
+
+project Balancer is
+
+   for Object_Dir use "obj";
+   for Main use ("balancer.adb");
+   type Ssl_Library_Kind is
+      ("relocatable", "static");
+   Ssl_Library_Type : Ssl_Library_Kind := external ("SSL_LIBRARY_TYPE");
+   type Target_Type is
+      ("native", "vxworks");
+   Platform : Target_Type := external ("PLATFORM");
+   type Library_Kind is
+      ("relocatable", "static");
+   Library_Type : Library_Kind := external ("LIBRARY_TYPE");
+
+   case Ssl_Library_Type is
+
+      when "relocatable" =>
+
+         case Platform is
+
+            when "native" =>
+
+               case Library_Type is
+
+                  when "relocatable" =>
+                     for Source_Dirs use ("src", "../../../lib/sl5/xmlada/include/xmlada", "../tools/pipes");
+
+                  when "static" =>
+                     for Source_Dirs use ("src");
+               end case;
+
+            when "vxworks" =>
+               for Source_Dirs use ("src", "../../../lib/sl5/xmlada/include/xmlada", "../tools/pipes");
+         end case;
+
+      when "static" =>
+         for Source_Dirs use ("src", "../../../lib/sl5/xmlada/include/xmlada", "../tools/pipes");
+   end case;
+
+   package Builder is
+      for Default_Switches ("ada") use ("-j4");
+   end Builder;
+
+   package Compiler is
+      for Default_Switches ("ada") use ("-gnaty3aBcCehiklnOrsStx", "-gnatwa", "-O", "-gnato", "-g");
+   end Compiler;
+
+end Balancer;
+
