@@ -1,4 +1,5 @@
 with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
+with Ada.Strings.Fixed;
 with SGE.Resources; use SGE.Resources; use SGE.Resources.Resource_Lists;
 
 
@@ -9,11 +10,24 @@ package body Resources is
    --------------------
 
    function To_Requirement (From : SGE.Resources.Hashed_List) return String is
+
+      function Seconds (Resource : SGE.Resources.Resource) return String is
+      begin
+         return Ada.Strings.Fixed.Trim (Source => Resource.Numerical'Img,
+                                        Side   => Ada.Strings.Left);
+      end Seconds;
+
       Result : Unbounded_String;
+      Name : Unbounded_String;
       Position : SGE.Resources.Resource_Lists.Cursor := From.First;
    begin
       loop
-         Result := Result & Key (Position) & "=" & Element (Position).Value;
+         Name := Key (Position);
+         if Name = "h_rt" then
+            Result := Result & Name & "=" & Seconds (Element (Position));
+         else
+            Result := Result & Name & "=" & Element (Position).Value;
+         end if;
          exit when Position = From.Last;
          Result := Result & ",";
          Next (Position);
