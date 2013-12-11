@@ -108,6 +108,9 @@ package body Utils is
 
    function Now return String is
       Raw_Time : constant Picture_String := "%s";
+      -- Result is one hour off compared to date +%s
+      -- as tested on 2013-12-11
+      -- The reason is unknown.
    begin
       return Image (Date => Ada.Calendar.Clock, Picture => Raw_Time);
    end Now;
