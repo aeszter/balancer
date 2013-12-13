@@ -24,6 +24,19 @@ package Partitions is
       Free_Slots : Slot_Map;
    end record;
 
+   procedure Search_Free_Slots (Where        : in out Index_Card;
+                                Minimum      : Positive;
+                                Mark_As_Used : Boolean;
+                                Found        : out Boolean);
+   --  Purpose:
+   -- Check whether the given Partition represented by Where has
+   -- at least one host with (at least) Minimum free slots.
+   -- If Mark_As_Used, remove that host from the list of available slots;
+   -- Although one could simply reduce the node from (free) to (free)-Minimum,
+   -- the use of slot lists (of which we only use the minimum) means this is
+   -- not worthwhile
+
+
    function New_Card (P : Partition) return Index_Card;
 
    package Catalogs is new Ada.Containers.Doubly_Linked_Lists
