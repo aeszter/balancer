@@ -9,9 +9,33 @@ package body Partitions is
 
    function New_Card (P : Partition) return Index_Card is
       Card : Index_Card;
+
+      procedure Increment (Slot_Number : Positive; Count : in out Natural) is
+         pragma Unreferenced (Slot_Number);
+      begin
+         Count := Count + 1;
+      end Increment;
+
+      procedure Copy (Position : SGE.Partitions.Countable_Maps.Cursor) is
+         Slot_Number : constant Natural := SGE.Partitions.Countable_Maps.Element (Position);
+         Slot_Position : Slot_Maps.Cursor;
+      begin
+         if Slot_Number = 0 then
+            return;
+         elsif
+           Card.Free_Slots.Contains (Slot_Number) then
+            Slot_Position := Card.Free_Slots.Find (Slot_Number);
+            Card.Free_Slots.Update_Element (Slot_Position, Increment'Access);
+         else
+            Card.Free_Slots.Insert (Key      => Slot_Number,
+                                    New_Item => 1);
+         end if;
+      end Copy;
+
    begin
       Card.Nodes := P;
       Card.Free_Hosts := P.Available_Hosts.Length;
+      P.Available_Slots.Iterate (Copy'Access);
       return Card;
    end New_Card;
 
@@ -46,6 +70,7 @@ package body Partitions is
       Catalog.Iterate (Count'Access);
 
       Utils.Verbose_Message (Total'Img & " free nodes in" & Catalog.Length'Img & " partitions found");
+      Utils.Verbose_Message ("Free slots: " & Free_Slots'Img);
    end Init;
 
    -------------------
@@ -94,5 +119,29 @@ package body Partitions is
       end loop;
       return Found;
    end GPU_Available;
+
+   function Free_Slots return Natural is
+      Total : Natural := 0;
+
+      procedure Sub_Tally (Position : Slot_Maps.Cursor) is
+         Slot_Number : constant Natural := Slot_Maps.Key (Position);
+         Count       : constant Natural := Slot_Maps.Element (Position);
+      begin
+         Utils.Debug (Slot_Number'Img & " =>" & Count'Img & ",", New_Line => False);
+         Total := Total + Count * Slot_Number;
+      end Sub_Tally;
+
+      procedure Tally (Position : Catalogs.Cursor) is
+      begin
+         Utils.Debug ("Partition:", New_Line => False);
+         Element (Position).Free_Slots.Iterate (Sub_Tally'Access);
+         Utils.Debug ("");
+      end Tally;
+
+   begin
+      Utils.Debug ("Free slots:");
+      Catalog.Iterate (Tally'Access);
+      return Total;
+   end Free_Slots;
 
 end Partitions;
