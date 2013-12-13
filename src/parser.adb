@@ -47,7 +47,7 @@ package body Parser is
    exception
       when E : SGE.Parser.Parser_Error =>
          Ada.Text_IO.Put_Line ("Could not alter job " & Get_ID (Job));
-         Utils.Verbose_Message (Exception_Message (E));
+         Utils.Verbose_Message ("#" & Exception_Message (E) & "#");
       when E : others =>
          Ada.Text_IO.Put_Line ("Unknown error in Parser.Alter_Job (" & Get_ID (Job) & "): ");
          Ada.Text_IO.Put_Line (Exception_Message (E));
