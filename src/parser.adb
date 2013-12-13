@@ -26,7 +26,7 @@ package body Parser is
    is
       Requirements : Unbounded_String := To_Unbounded_String (Get_ID (Job));
       Output       : SGE.Spread_Sheets.Spread_Sheet;
-      Timestamp    : constant String := " -sc LASTMIG=" & Utils.Now;
+      Timestamp    : constant String := " -ac LASTMIG=" & Utils.Now;
       pragma Unreferenced (Output);
       -- Can we do something useful with the output?
    begin
