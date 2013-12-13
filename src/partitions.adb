@@ -21,6 +21,7 @@ package body Partitions is
 
    procedure Init is
       SGE_Out : Tree;
+      Total : Natural := 0;
 
       procedure Copy (P : Partition) is
       begin
@@ -30,6 +31,11 @@ package body Partitions is
          Catalog.Append (New_Card (P));
       end Copy;
 
+      procedure Count (Position : Catalogs.Cursor) is
+      begin
+         Total := Total + Natural (Element (Position).Free_Hosts);
+      end Count;
+
    begin
       SGE_Out := Setup (Selector => Parser.Resource_Selector);
 
@@ -37,8 +43,9 @@ package body Partitions is
       SGE.Parser.Free;
       SGE.Partitions.Build_List;
       SGE.Partitions.Iterate (Copy'Access);
+      Catalog.Iterate (Count'Access);
 
-      Utils.Verbose_Message ("N free nodes in" & Catalog.Length'Img & " partitions found");
+      Utils.Verbose_Message (Total'Img & " free nodes in" & Catalog.Length'Img & " partitions found");
    end Init;
 
    -------------------
