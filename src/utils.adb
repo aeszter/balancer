@@ -12,10 +12,14 @@ package body Utils is
    -- Debug --
    -----------
 
-   procedure Debug (Message : String) is
+   procedure Debug (Message : String; New_Line : Boolean := True) is
    begin
       if Debug_Enabled then
-         Put_Line (Standard_Error, Message);
+         if New_Line then
+            Put_Line (Standard_Error, Message);
+         else
+            Put (Standard_Error, Message);
+         end if;
       end if;
    end Debug;
 

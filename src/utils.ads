@@ -5,7 +5,7 @@ package Utils is
 
    Assumption_Error : exception;
 
-   procedure Debug (Message : String);
+   procedure Debug (Message : String; New_Line : Boolean := True);
    procedure Verbose_Message (Message : String);
    procedure Enable_Debug;
    function Dry_Run (Message         : String) return Boolean;
