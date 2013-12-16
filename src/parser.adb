@@ -27,8 +27,8 @@ package body Parser is
       Requirements : Unbounded_String := To_Unbounded_String (Get_ID (Job));
       Output       : SGE.Spread_Sheets.Spread_Sheet;
       Timestamp    : constant String := " -ac LASTMIG=" & Utils.Now;
-      pragma Unreferenced (Output);
-      -- Can we do something useful with the output?
+      Exit_Status  : Natural;
+      -- Can we do something useful with the output? Bug #1849
    begin
       if Slots /= "" then
          if To_String (SGE.Jobs.Get_PE (Job)) = "" then
@@ -41,8 +41,23 @@ package body Parser is
          Requirements := Requirements & " -l " & Insecure_Resources;
       end if;
       if not Utils.Dry_Run ("qalter " & To_String (Requirements) & Timestamp) then
-         Output := SGE.Parser.Setup_No_XML (Command => "qalter", Subpath => "/bin/linux-x64/",
-                                            Selector => To_String (Requirements) & Timestamp);
+         SGE.Parser.Setup_No_XML (Command => "qalter",
+                                  Subpath => "/bin/linux-x64/",
+                                  Selector => To_String (Requirements) & Timestamp,
+                                  Output      => Output,
+                                  Exit_Status => Exit_Status);
+         case Exit_Status is
+            when 0 => null; -- OK
+            when 1 =>
+               Utils.Verbose_Message ("Exit Status 1, evaluate output (Bug #1849)");
+               Output.Rewind;
+               Utils.Error_Message (Output.Current);
+               -- denied: former resource request on consumable "gpu" of running job lacks in new resource request
+            when others =>
+               Utils.Error_Message ("qalter exited with status" & Exit_Status'Img
+                                    & ". This is a bug in the balancer because it is "
+                                    & "unhandled in Parser.Alter_Job.");
+         end case;
       end if;
    exception
       when E : SGE.Parser.Parser_Error =>
@@ -56,14 +71,26 @@ package body Parser is
    procedure Add_Pending_Since (J : Job) is
       Output : SGE.Spread_Sheets.Spread_Sheet;
       Params : constant String := Get_ID (J) & " -ac PENDINGSINCE=" & Utils.Now;
+      Exit_Status : Natural;
       pragma Unreferenced (Output);
       -- Can we do something useful with the output?
    begin
       if Get_Context (J, "PENDINGSINCE") = "" then
          if not Utils.Dry_Run ("qalter "  & Params) then
-            Output := SGE.Parser.Setup_No_XML (Command => "qalter",
-                                               Subpath => "/bin/linux-x64/",
-                                               Selector => Params);
+            SGE.Parser.Setup_No_XML (Command     => "qalter",
+                                     Subpath     => "/bin/linux-x64/",
+                                     Selector    => Params,
+                                     Output      => Output,
+                                     Exit_Status => Exit_Status);
+            case Exit_Status is
+               when 0 => null; -- OK
+               when 1 => Utils.Verbose_Message ("Exit Status 1, evaluate output (Bug #1849)");
+               when others =>
+                  Utils.Error_Message ("qalter exited with status" & Exit_Status'Img
+                                       & ". This is a bug in the balancer because it is "
+                                       & "unhandled in Parser.Add_Pending_Since.");
+            end case;
+
          end if;
       end if;
    exception
