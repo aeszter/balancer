@@ -12,10 +12,14 @@ package body Utils is
    -- Debug --
    -----------
 
-   procedure Debug (Message : String) is
+   procedure Debug (Message : String; New_Line : Boolean := True) is
    begin
       if Debug_Enabled then
-         Put_Line (Standard_Error, Message);
+         if New_Line then
+            Put_Line (Standard_Error, Message);
+         else
+            Put (Standard_Error, Message);
+         end if;
       end if;
    end Debug;
 
@@ -41,6 +45,16 @@ package body Utils is
          Put_Line (Message);
       end if;
    end Verbose_Message;
+
+   procedure Error_Message (Message : String; Bug_ID : Natural := 0) is
+   begin
+      Put_Line (Message);
+      if Bug_ID /= 0 then
+         Put_Line ("See Bug" & Bug_ID'Img
+                   & ": http://ram/bugzilla/show_bug.cgi?id=" & Bug_ID'Img);
+      end if;
+   end Error_Message;
+
 
    ------------------
    -- Enable_Debug --
