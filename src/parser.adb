@@ -46,13 +46,28 @@ package body Parser is
                                   Selector => To_String (Requirements) & Timestamp,
                                   Output      => Output,
                                   Exit_Status => Exit_Status);
+         Output.Rewind;
+         if Output.At_Separator then
+            Output.Next;
+         end if;
          case Exit_Status is
             when 0 => null; -- OK
             when 1 =>
-               Utils.Verbose_Message ("Exit Status 1, evaluate output (Bug #1849)");
-               Output.Rewind;
-               Utils.Error_Message (Output.Current);
-               -- denied: former resource request on consumable "gpu" of running job lacks in new resource request
+               declare
+                  Message : constant String := Output.Current;
+                  Modified_Context : constant String := "modified context of job";
+                  Length : constant Positive := Modified_Context'Length;
+               begin
+                  if Message = "denied: former resource request on consumable "
+                    & """gpu"" of running job lacks in new resource request" then
+                     null; -- expected error message even for pending jobs
+                  elsif Message (Message'First .. Message'First + Length - 1) = Modified_Context then
+                     null; -- signifies success
+                  else
+                     Utils.Verbose_Message ("Exit Status 1, evaluate output (Bug #1849)");
+                     Utils.Error_Message ("#" & Message & "#");
+                  end if;
+               end;
             when others =>
                Utils.Error_Message ("qalter exited with status" & Exit_Status'Img
                                     & ". This is a bug in the balancer because it is "
