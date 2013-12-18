@@ -2,12 +2,16 @@ with SGE.Parser; use SGE.Parser;
 with SGE.Queues;
 with Parser;
 with Utils;
+with SGE.Host_Properties;
 
 package body Partitions is
    use Partitions.Catalogs;
    use type Ada.Containers.Count_Type;
 
+
    function New_Card (P : Partition) return Index_Card is
+      procedure Increment (Slot_Number : Positive; Count : in out Natural);
+      procedure Copy (Position : SGE.Partitions.Countable_Maps.Cursor);
       Card : Index_Card;
 
       procedure Increment (Slot_Number : Positive; Count : in out Natural) is
@@ -44,6 +48,8 @@ package body Partitions is
    ----------
 
    procedure Init is
+      procedure Copy (P : Partition);
+      procedure Count (Position : Catalogs.Cursor);
       SGE_Out : Tree;
       Total : Natural := 0;
 
@@ -79,45 +85,98 @@ package body Partitions is
 
    function CPU_Available (For_Job : Job; Mark_As_Used : Boolean) return Boolean
    is
-      Found    : Boolean := False;
+      Found    : Slot_Maps.Cursor;
       Position : Catalogs.Cursor := Catalog.First;
       Card     : Index_Card;
+
+      procedure Decrement_Slots (Slot_Number : Positive; Count : in out Natural) is
+         pragma Unreferenced (Slot_Number);
+      begin
+         Utils.Trace ("...and using one of" & Count'Img);
+         Count := Count - 1;
+      end Decrement_Slots;
+
+      procedure Call_Decrement_Slots (Partition : in out Index_Card) is
+      begin
+         Slot_Maps.Update_Element (Container => Partition.Free_Slots,
+                                   Position  => Found,
+                                   Process   => Decrement_Slots'Access);
+      end Call_Decrement_Slots;
+
+      use Slot_Maps;
+
    begin
       while Position /= Catalogs.No_Element loop
          Card := Element (Position);
+         Utils.Trace ("Trying " & SGE.Host_Properties.To_String (Card.Nodes.Properties) & "...");
          Search_Free_Slots (Where        => Card,
                             Minimum      => Get_Minimum_Slots (For_Job),
-                            Mark_As_Used => Mark_As_Used,
                             Found        => Found);
-         exit when Found;
+         if Found /= Slot_Maps.No_Element then
+            if Mark_As_Used then
+               Catalog.Update_Element (Position => Position,
+                                       Process  => Call_Decrement_Slots'Access);
+            end if;
+            return True;
+         end if;
+         Utils.Trace ("...already full");
          Next (Position);
       end loop;
-      return Found;
+      return False;
    end CPU_Available;
 
    -------------------
    -- GPU_Available --
    -------------------
+   -- Fixme: combine CPU_Available and GPU_Available into one unified Subprogram
+   -- where only the partition suitability will be defined differently (via parameters)
 
    function GPU_Available (Mark_As_Used : Boolean) return Boolean is
-      Found : Boolean := False;
+      Found    : Slot_Maps.Cursor;
       Position : Catalogs.Cursor := Catalog.First;
-      Card : Index_Card;
+      Card     : Index_Card;
+
+      procedure Decrement_Slots (Slot_Number : Positive; Count : in out Natural) is
+         pragma Unreferenced (Slot_Number);
+      begin
+         Utils.Trace ("...and using one of" & Count'Img);
+         Count := Count - 1;
+      end Decrement_Slots;
+
+      procedure Call_Decrement_Slots (Partition : in out Index_Card) is
+      begin
+         Slot_Maps.Update_Element (Container => Partition.Free_Slots,
+                                   Position  => Found,
+                                   Process   => Decrement_Slots'Access);
+      end Call_Decrement_Slots;
+
+      use Slot_Maps;
+
    begin
       while Position /= Catalogs.No_Element loop
          Card := Element (Position);
+         Utils.Trace ("Trying " & SGE.Host_Properties.To_String (Card.Nodes.Properties) & "...");
          if Has_GPU (Card.Nodes) then
+            Utils.Trace ("  Heuristic: use 4 slots for GPU job");
             Search_Free_Slots (Where        => Card,
                                Minimum      => 4,
-                               Mark_As_Used => Mark_As_Used,
                                Found        => Found);
             -- FIXME: Minimum => 4 is a heuristic value
             -- Maybe use job characteristics here?
-            exit when Found;
+            if Found /= Slot_Maps.No_Element then
+               if Mark_As_Used then
+                  Catalog.Update_Element (Position => Position,
+                                          Process  => Call_Decrement_Slots'Access);
+               end if;
+               return True;
+            end if;
+         else
+            Utils.Trace ("... no GPU");
          end if;
+         Utils.Trace ("...already full");
          Next (Position);
       end loop;
-      return Found;
+      return False;
    end GPU_Available;
 
    function Free_Slots return Natural is
@@ -144,30 +203,21 @@ package body Partitions is
       return Total;
    end Free_Slots;
 
-   procedure Search_Free_Slots (Where        : in out Index_Card;
+   procedure Search_Free_Slots (Where        : Index_Card;
                          Minimum      : Positive;
-                         Mark_As_Used : Boolean;
-                         Found        : out Boolean) is
+                         Found        : out Slot_Maps.Cursor) is
       use Slot_Maps;
-
-      procedure Decrement (Key : Positive; Element : in out Natural) is
-         pragma Unreferenced (Key);
-      begin
-         Element := Element - 1;
-      end Decrement;
 
       Position : constant Slot_Maps.Cursor := Where.Free_Slots.Ceiling (Minimum);
 
    begin
       if Position = Slot_Maps.No_Element
         or else Element (Position) = 0 then
-         Found := False;
+         Found := Slot_Maps.No_Element;
          return;
       else
-         if Mark_As_Used then
-            Where.Free_Slots.Update_Element (Position, Decrement'Access);
-         end if;
-         Found := True;
+         Utils.Trace ("Found" & Key (Position)'Img & ">=" & Minimum'Img & " free slots");
+         Found := Position;
          return;
       end if;
    end Search_Free_Slots;

@@ -24,10 +24,9 @@ package Partitions is
       Free_Slots : Slot_Map;
    end record;
 
-   procedure Search_Free_Slots (Where        : in out Index_Card;
-                                Minimum      : Positive;
-                                Mark_As_Used : Boolean;
-                                Found        : out Boolean);
+   procedure Search_Free_Slots (Where        : Index_Card;
+                         Minimum      : Positive;
+                                Found        : out Slot_Maps.Cursor);
    --  Purpose:
    -- Check whether the given Partition represented by Where has
    -- at least one host with (at least) Minimum free slots.
