@@ -44,6 +44,8 @@ package body Jobs is
 
    procedure Balance_One_Job (J : Job) is
    begin
+      Utils.Trace ("Looking at " & Get_Owner (J)
+                   & "'s supported job " & Get_ID (J));
       if Queued_For_CPU (J)
         and then Partitions.GPU_Available (Mark_As_Used => True) then
          Migrate_To_GPU (J);

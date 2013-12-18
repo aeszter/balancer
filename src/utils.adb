@@ -46,6 +46,13 @@ package body Utils is
       end if;
    end Verbose_Message;
 
+   procedure Trace (Message : String) is
+   begin
+      if Trace_Policy then
+         Put_Line (Message);
+      end if;
+   end Trace;
+
    procedure Error_Message (Message : String; Bug_ID : Natural := 0) is
    begin
       Put_Line (Message);
@@ -85,6 +92,9 @@ package body Utils is
          elsif Argument (Arg) = "-s" or else
            Argument (Arg) = "--statistics" then
             Stats := True;
+         elsif Argument (Arg) = "-p" or else
+           Argument (Arg) = "--policy" then
+            Trace_Policy := True;
          elsif Argument (Arg) = "-h" or else
            Argument (Arg) = "--help" then
             Ada.Text_IO.Put_Line ("Options may be given in full or with a single hyphen "
