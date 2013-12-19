@@ -2,6 +2,7 @@ with Ada.Containers.Doubly_Linked_Lists;
 with Ada.Containers.Ordered_Maps;
 with SGE.Jobs; use SGE.Jobs;
 with SGE.Partitions; use SGE.Partitions;
+with Ada.Containers.Ordered_Sets;
 
 package Partitions is
    procedure Init;
@@ -21,27 +22,29 @@ package Partitions is
    type Index_Card is record
       Nodes : Partition;
       Free_Hosts : Ada.Containers.Count_Type;
-      Free_Slots : Slot_Map;
+      Free_Slots : Natural;
+      Count : Natural;
    end record;
 
-   procedure Search_Free_Slots (Where        : in out Index_Card;
-                                Minimum      : Positive;
+   function "<" (Left, Right : Index_Card) return Boolean;
+
+   procedure Search_Free_Slots (Selector : not null access function (Card : Index_Card) return Boolean;
                                 Mark_As_Used : Boolean;
                                 Found        : out Boolean);
    --  Purpose:
-   -- Check whether the given Partition represented by Where has
-   -- at least one host with (at least) Minimum free slots.
+   -- Check whether there is for which Selector returns true
    -- If Mark_As_Used, remove that host from the list of available slots;
    -- Although one could simply reduce the node from (free) to (free)-Minimum,
    -- the use of slot lists (of which we only use the minimum) means this is
    -- not worthwhile
 
 
-   function New_Card (P : Partition) return Index_Card;
+   function New_Card (P : Partition; Free_Slots : Natural; Node_Count : Positive)
+                      return Index_Card;
 
-   package Catalogs is new Ada.Containers.Doubly_Linked_Lists
+   package Catalogs is new Ada.Containers.Ordered_Sets
      (Element_Type => Index_Card);
 private
-   Catalog : Catalogs.List;
+   Catalog : Catalogs.Set;
 
 end Partitions;

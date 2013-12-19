@@ -7,37 +7,30 @@ package body Partitions is
    use Partitions.Catalogs;
    use type Ada.Containers.Count_Type;
 
-   function New_Card (P : Partition) return Index_Card is
+   function New_Card (P : Partition; Free_Slots : Natural; Node_Count : Positive)
+                      return Index_Card is
       Card : Index_Card;
-
-      procedure Increment (Slot_Number : Positive; Count : in out Natural) is
-         pragma Unreferenced (Slot_Number);
-      begin
-         Count := Count + 1;
-      end Increment;
-
-      procedure Copy (Position : SGE.Partitions.Countable_Maps.Cursor) is
-         Slot_Number : constant Natural := SGE.Partitions.Countable_Maps.Element (Position);
-         Slot_Position : Slot_Maps.Cursor;
-      begin
-         if Slot_Number = 0 then
-            return;
-         elsif
-            Card.Free_Slots.Contains (Slot_Number) then
-            Slot_Position := Card.Free_Slots.Find (Slot_Number);
-            Card.Free_Slots.Update_Element (Slot_Position, Increment'Access);
-         else
-            Card.Free_Slots.Insert (Key      => Slot_Number,
-                                    New_Item => 1);
-         end if;
-      end Copy;
 
    begin
       Card.Nodes := P;
       Card.Free_Hosts := P.Available_Hosts.Length;
-      P.Available_Slots.Iterate (Copy'Access);
+      Card.Free_Slots := Free_Slots;
+      Card.Count := Node_Count;
       return Card;
    end New_Card;
+
+   function "<" (Left, Right : Index_Card) return Boolean is
+      use SGE.Host_Properties;
+   begin
+      if Left.Free_Slots < Right.Free_Slots then
+         return True;
+      elsif Left.Free_Slots > Right.Free_Slots then
+         return False;
+      else
+         return Left.Nodes.Properties < Right.Nodes.Properties;
+      end if;
+   end "<";
+
 
    ----------
    -- Init --
@@ -48,11 +41,16 @@ package body Partitions is
       Total : Natural := 0;
 
       procedure Copy (P : Partition) is
+         procedure Copy_Sub_Partition (Free_Slots : Natural; Count : Natural) is
+         begin
+            Catalog.Insert (New_Card (P, Free_Slots, Count));
+         end Copy_Sub_Partition;
+
       begin
          if P.Available_Slots.Is_Empty then
             return;
          end if;
-         Catalog.Append (New_Card (P));
+         P.Available_Slots.Iterate (Copy_Sub_Partition'Access);
       end Copy;
 
       procedure Count (Position : Catalogs.Cursor) is
@@ -79,19 +77,21 @@ package body Partitions is
 
    function CPU_Available (For_Job : Job; Mark_As_Used : Boolean) return Boolean
    is
-      Found    : Boolean := False;
-      Position : Catalogs.Cursor := Catalog.First;
-      Card     : Index_Card;
+      Found : Boolean;
+
+      function Selector (Card : Index_Card) return Boolean is
+      begin
+         if Card.Free_Slots >= Get_Minimum_Slots (For_Job) then
+            return True;
+         else
+            return False;
+         end if;
+      end Selector;
+
    begin
-      while Position /= Catalogs.No_Element loop
-         Card := Element (Position);
-         Search_Free_Slots (Where        => Card,
-                            Minimum      => Get_Minimum_Slots (For_Job),
-                            Mark_As_Used => Mark_As_Used,
-                            Found        => Found);
-         exit when Found;
-         Next (Position);
-      end loop;
+      Search_Free_Slots (Selector => Selector'Access,
+                         Mark_As_Used => Mark_As_Used,
+                         Found        => Found);
       return Found;
    end CPU_Available;
 
@@ -100,25 +100,18 @@ package body Partitions is
    -------------------
 
    function GPU_Available (Mark_As_Used : Boolean) return Boolean is
-      Found : Boolean := False;
-      Position : Catalogs.Cursor := Catalog.First;
-      Card : Index_Card;
+      function Selector (Card : Index_Card) return Boolean is
+      begin
+         return Has_GPU (Card.Nodes);
+      end Selector;
+
    begin
-      while Position /= Catalogs.No_Element loop
-         Card := Element (Position);
-         if Has_GPU (Card.Nodes) then
-            Search_Free_Slots (Where        => Card,
-                               Minimum      => 4,
-                               Mark_As_Used => Mark_As_Used,
-                               Found        => Found);
-            -- FIXME: Minimum => 4 is a heuristic value
-            -- Maybe use job characteristics here?
-            exit when Found;
-         end if;
-         Next (Position);
-      end loop;
+      Search_Free_Slots (Selector => Selector'Access,
+                         Mark_As_Used => Mark_As_Used,
+                         Found        => Found);
       return Found;
    end GPU_Available;
+
 
    function Free_Slots return Natural is
       Total : Natural := 0;
@@ -132,10 +125,12 @@ package body Partitions is
       end Sub_Tally;
 
       procedure Tally (Position : Catalogs.Cursor) is
+         Card : constant Index_Card := Element (Position);
+         Local_Slots : Natural := Card.Count * Card.Free_Slots;
       begin
-         Utils.Debug ("Partition:", New_Line => False);
-         Element (Position).Free_Slots.Iterate (Sub_Tally'Access);
-         Utils.Debug ("");
+         Utils.Debug ("Partition: " & To_String (Card.Nodes.Properties)
+                      & Card.Free_Slots'Img & " =>" & Card.Count'Img);
+         Total := Total + Local_Slots;
       end Tally;
 
    begin
@@ -144,32 +139,30 @@ package body Partitions is
       return Total;
    end Free_Slots;
 
-   procedure Search_Free_Slots (Where        : in out Index_Card;
-                         Minimum      : Positive;
-                         Mark_As_Used : Boolean;
-                         Found        : out Boolean) is
+   procedure Search_Free_Slots (Selector : not null access function (Card : Index_Card) return Boolean;
+                                Mark_As_Used : Boolean;
+                                Found        : out Boolean) is
       use Slot_Maps;
 
-      procedure Decrement (Key : Positive; Element : in out Natural) is
-         pragma Unreferenced (Key);
+      procedure Decrement (Card : in out Index_Card) is
       begin
-         Element := Element - 1;
+         Card.Count := Card.Count - 1;
       end Decrement;
 
-      Position : constant Slot_Maps.Cursor := Where.Free_Slots.Ceiling (Minimum);
+      Position : Catalogs.Cursor := Catalog.First;
 
    begin
-      if Position = Slot_Maps.No_Element
-        or else Element (Position) = 0 then
-         Found := False;
-         return;
-      else
-         if Mark_As_Used then
-            Where.Free_Slots.Update_Element (Position, Decrement'Access);
+      while Position /= Catalogs.No_Element loop
+         if Element (Position).Count >= 0
+           and then Selector (Element (Position)) then
+            Found := True;
+            if Mark_As_Used then
+               Catalog.Update_Element_Preserving_Key (Position, Decrement'Access);
+            end if;
+            return;
          end if;
-         Found := True;
-         return;
-      end if;
+      end loop;
+      Found := False;
    end Search_Free_Slots;
 
 
