@@ -2,16 +2,14 @@ with SGE.Parser; use SGE.Parser;
 with SGE.Queues;
 with Parser;
 with Utils;
-with SGE.Host_Properties;
 
 package body Partitions is
    use Partitions.Catalogs;
    use type Ada.Containers.Count_Type;
 
 
-   function New_Card (P : Partition) return Index_Card is
-      procedure Increment (Slot_Number : Positive; Count : in out Natural);
-      procedure Copy (Position : SGE.Partitions.Countable_Maps.Cursor);
+   function New_Card (P : Partition; Free_Slots : Natural)
+                      return Index_Card is
       Card : Index_Card;
 
    begin
@@ -130,8 +128,6 @@ package body Partitions is
    -------------------
    -- GPU_Available --
    -------------------
-   -- Fixme: combine CPU_Available and GPU_Available into one unified Subprogram
-   -- where only the partition suitability will be defined differently (via parameters)
 
    function GPU_Available (Mark_As_Used : Boolean) return Boolean is
       function Selector (Card : Index_Card) return Boolean;
