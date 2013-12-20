@@ -51,6 +51,9 @@ package body Partitions is
             Card : constant Index_Card := New_Card (P, Free_Slots);
             Existing : constant Cursor := Catalog.Find (Card);
          begin
+            if Free_Slots = 0 then
+               return;
+            end if;
             if Existing /= No_Element then
                Utils.Debug ("Sub partition exists: "
                       & SGE.Host_Properties.To_String (Card.Partition)
@@ -112,6 +115,10 @@ package body Partitions is
       function Selector (Card : Index_Card) return Boolean is
       begin
          if Card.Free_Slots >= Get_Minimum_Slots (For_Job) then
+            Utils.Trace ("Found a node with" & Card.Free_Slots'Img
+                         & ">=" & Get_Minimum_Slots (For_Job)'Img
+                         & " free slots in "
+                         & SGE.Host_Properties.To_String (Card.Partition));
             return True;
          else
             return False;
@@ -134,6 +141,11 @@ package body Partitions is
 
       function Selector (Card : Index_Card) return Boolean is
       begin
+         if SGE.Host_Properties.Has_GPU (Card.Partition) then
+            Utils.Trace ("Found a node with a GPU and" & Card.Free_Slots'Img
+                         & " free slots in "
+                         & SGE.Host_Properties.To_String (Card.Partition));
+         end if;
          return SGE.Host_Properties.Has_GPU (Card.Partition);
       end Selector;
 
@@ -187,6 +199,7 @@ package body Partitions is
            and then Selector (Key (Position)) then
             Found := True;
             if Mark_As_Used then
+               Utils.Trace ("...and using one of" & Element (Position)'Img);
                Catalog.Update_Element (Position, Decrement'Access);
             end if;
             return;
