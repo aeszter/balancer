@@ -119,6 +119,9 @@ package body Parser is
 
 
    function Sanitise (Input : String) return String is
+      function Is_Harmless_Dash (Char : in Character; Where : Positive) return Boolean;
+      function Is_Suspicious (Char : Character) return Boolean;
+
       Output : String := Input;
 
       function Is_Harmless_Dash (Char : in Character; Where : Positive) return Boolean is

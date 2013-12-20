@@ -44,14 +44,20 @@ package body Jobs is
 
    procedure Balance_One_Job (J : Job) is
    begin
-      if Queued_For_CPU (J)
-        and then Partitions.GPU_Available (Mark_As_Used => True) then
-         Migrate_To_GPU (J);
-         Statistics.To_GPU;
-      elsif Queued_For_GPU (J)
-        and then Partitions.CPU_Available (For_Job => J, Mark_As_Used => True) then
-         Migrate_To_CPU (J);
-         Statistics.To_CPU;
+      if Queued_For_CPU (J) then
+         if Partitions.GPU_Available (Mark_As_Used => True) then
+            Migrate_To_GPU (J);
+            Statistics.To_GPU;
+         else
+            Statistics.No_Slots;
+         end if;
+      elsif Queued_For_GPU (J) then
+         if Partitions.CPU_Available (For_Job => J, Mark_As_Used => True) then
+            Migrate_To_CPU (J);
+            Statistics.To_CPU;
+         else
+            Statistics.No_Slots;
+         end if;
       else
          Utils.Verbose_Message ("Job" & Get_ID (J) & " queued for neither CPU nor GPU");
          Statistics.Aimless_Job;
