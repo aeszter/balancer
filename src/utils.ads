@@ -1,13 +1,15 @@
 with Ada.Numerics.Float_Random;
 
 package Utils is
-   Version : String := "v0.2";
+   Version : String := "v1.0";
 
    Assumption_Error : exception;
 
    procedure Debug (Message : String; New_Line : Boolean := True);
    procedure Verbose_Message (Message : String);
    procedure Error_Message (Message : String; Bug_ID : Natural := 0);
+   procedure Trace (Message : String);
+
    procedure Enable_Debug;
    function Dry_Run (Message         : String) return Boolean;
    -- return whether Action is false
@@ -27,5 +29,6 @@ private
    Debug_Enabled    : Boolean := False;
    Verbose          : Boolean := False;
    Stats            : Boolean := False;
+   Trace_Policy     : Boolean := False;
    Random_Generator : Ada.Numerics.Float_Random.Generator;
 end Utils;

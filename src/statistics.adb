@@ -15,6 +15,9 @@ package body Statistics is
       if Global_Stats.To_GPU > 0 then
          Ada.Text_IO.Put_Line (Global_Stats.To_GPU'Img & " jobs migrated to GPU queues");
       end if;
+      if Global_Stats.No_Slots > 0 then
+         Ada.Text_IO.Put_Line (Global_Stats.No_Slots'Img & " jobs not migrated because there are no free slots");
+      end if;
       if Global_Stats.Aimless > 0 then
          Ada.Text_IO.Put_Line (Global_Stats.Aimless'Img & " jobs without destination found");
       end if;
@@ -28,6 +31,11 @@ package body Statistics is
    begin
       Global_Stats.To_CPU := Global_Stats.To_CPU + 1;
    end To_CPU;
+
+   procedure No_Slots is
+   begin
+      Global_Stats.No_Slots := Global_Stats.No_Slots + 1;
+   end No_Slots;
 
    ------------
    -- To_GPU --
