@@ -90,7 +90,7 @@ package body Partitions is
 
    begin
       Utils.Debug ("--> Partitions.Init");
-      SGE_Out := Setup (Selector => Parser.Resource_Selector);
+      SGE_Out := Setup (Selector => Parser.Resource_Selector & " -l h_rt=24:00:00");
 
       SGE.Queues.Append_List (Get_Elements_By_Tag_Name (SGE_Out, "Queue-List"));
       SGE.Parser.Free;
