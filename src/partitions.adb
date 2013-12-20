@@ -2,20 +2,24 @@ with SGE.Parser; use SGE.Parser;
 with SGE.Queues;
 with Parser;
 with Utils;
+with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 
 package body Partitions is
    use Partitions.Catalogs;
    use type Ada.Containers.Count_Type;
 
-   function New_Card (P : Partition; Free_Slots : Natural; Node_Count : Positive)
+   --------------
+   -- New_Card --
+   --------------
+
+   function New_Card (P : Partition; Free_Slots : Natural)
                       return Index_Card is
       Card : Index_Card;
 
    begin
-      Card.Nodes := P;
+      Card.Partition := P.Properties;
       Card.Free_Hosts := P.Available_Hosts.Length;
       Card.Free_Slots := Free_Slots;
-      Card.Count := Node_Count;
       return Card;
    end New_Card;
 
@@ -27,7 +31,7 @@ package body Partitions is
       elsif Left.Free_Slots > Right.Free_Slots then
          return False;
       else
-         return Left.Nodes.Properties < Right.Nodes.Properties;
+         return Left.Partition < Right.Partition;
       end if;
    end "<";
 
@@ -37,13 +41,32 @@ package body Partitions is
    ----------
 
    procedure Init is
+      procedure Copy (P : Partition);
+      procedure Count (Position : Catalogs.Cursor);
+      procedure Increment (Card : Index_Card; Count : in out Natural);
       SGE_Out : Tree;
       Total : Natural := 0;
 
       procedure Copy (P : Partition) is
-         procedure Copy_Sub_Partition (Free_Slots : Natural; Count : Natural) is
+         procedure Copy_Sub_Partition (Position : Countable_Maps.Cursor);
+
+         procedure Copy_Sub_Partition (Position : Countable_Maps.Cursor) is
+            Free_Slots : constant Natural := SGE.Partitions.Countable_Maps.Element (Position);
+            Card : constant Index_Card := New_Card (P, Free_Slots);
+            Existing : constant Cursor := Catalog.Find (Card);
          begin
-            Catalog.Insert (New_Card (P, Free_Slots, Count));
+            if Existing /= No_Element then
+               Utils.Debug ("Sub partition exists: "
+                      & SGE.Host_Properties.To_String (Card.Partition)
+                      & "[" & Free_Slots'Img & "]");
+               Catalog.Update_Element (Existing, Increment'Access);
+            else
+               Utils.Debug ("Inserting "
+                      & SGE.Host_Properties.To_String (Card.Partition)
+                      & "[" & Free_Slots'Img & "]");
+               Catalog.Insert (Key => Card,
+                               New_Item => 1);
+            end if;
          end Copy_Sub_Partition;
 
       begin
@@ -55,10 +78,18 @@ package body Partitions is
 
       procedure Count (Position : Catalogs.Cursor) is
       begin
-         Total := Total + Natural (Element (Position).Free_Hosts);
+         Total := Total + Natural (Key (Position).Free_Hosts);
       end Count;
 
+      procedure Increment (Card : Index_Card; Count : in out Natural) is
+         pragma Unreferenced (Card);
+      begin
+         Count := Count + 1;
+      end Increment;
+
+
    begin
+      Utils.Debug ("--> Partitions.Init");
       SGE_Out := Setup (Selector => Parser.Resource_Selector);
 
       SGE.Queues.Append_List (Get_Elements_By_Tag_Name (SGE_Out, "Queue-List"));
@@ -69,6 +100,7 @@ package body Partitions is
 
       Utils.Verbose_Message (Total'Img & " free nodes in" & Catalog.Length'Img & " partitions found");
       Utils.Verbose_Message ("Free slots: " & Free_Slots'Img);
+      Utils.Debug ("<-- Partitions.Init");
    end Init;
 
    -------------------
@@ -77,6 +109,8 @@ package body Partitions is
 
    function CPU_Available (For_Job : Job; Mark_As_Used : Boolean) return Boolean
    is
+      function Selector (Card : Index_Card) return Boolean;
+
       Found : Boolean;
 
       function Selector (Card : Index_Card) return Boolean is
@@ -100,10 +134,14 @@ package body Partitions is
    -------------------
 
    function GPU_Available (Mark_As_Used : Boolean) return Boolean is
+      function Selector (Card : Index_Card) return Boolean;
+
       function Selector (Card : Index_Card) return Boolean is
       begin
-         return Has_GPU (Card.Nodes);
+         return SGE.Host_Properties.Has_GPU (Card.Partition);
       end Selector;
+
+      Found : Boolean;
 
    begin
       Search_Free_Slots (Selector => Selector'Access,
@@ -114,22 +152,17 @@ package body Partitions is
 
 
    function Free_Slots return Natural is
+      procedure Tally (Position : Catalogs.Cursor);
+
       Total : Natural := 0;
 
-      procedure Sub_Tally (Position : Slot_Maps.Cursor) is
-         Slot_Number : constant Natural := Slot_Maps.Key (Position);
-         Count       : constant Natural := Slot_Maps.Element (Position);
-      begin
-         Utils.Debug (Slot_Number'Img & " =>" & Count'Img & ",", New_Line => False);
-         Total := Total + Count * Slot_Number;
-      end Sub_Tally;
-
       procedure Tally (Position : Catalogs.Cursor) is
-         Card : constant Index_Card := Element (Position);
-         Local_Slots : Natural := Card.Count * Card.Free_Slots;
+         Card : constant Index_Card := Key (Position);
+         Count : constant Natural := Element (Position);
+         Local_Slots : constant Natural := Count * Card.Free_Slots;
       begin
-         Utils.Debug ("Partition: " & To_String (Card.Nodes.Properties)
-                      & Card.Free_Slots'Img & " =>" & Card.Count'Img);
+         Utils.Debug ("Partition: " & SGE.Host_Properties.To_String (Card.Partition)
+                      & Card.Free_Slots'Img & " =>" & Count'Img);
          Total := Total + Local_Slots;
       end Tally;
 
@@ -142,25 +175,27 @@ package body Partitions is
    procedure Search_Free_Slots (Selector : not null access function (Card : Index_Card) return Boolean;
                                 Mark_As_Used : Boolean;
                                 Found        : out Boolean) is
-      use Slot_Maps;
+      procedure Decrement (Card : Index_Card; Count : in out Natural);
 
-      procedure Decrement (Card : in out Index_Card) is
+      procedure Decrement (Card : Index_Card; Count : in out Natural) is
+         pragma Unreferenced (Card);
       begin
-         Card.Count := Card.Count - 1;
+         Count := Count - 1;
       end Decrement;
 
       Position : Catalogs.Cursor := Catalog.First;
 
    begin
       while Position /= Catalogs.No_Element loop
-         if Element (Position).Count >= 0
-           and then Selector (Element (Position)) then
+         if Element (Position) > 0
+           and then Selector (Key (Position)) then
             Found := True;
             if Mark_As_Used then
-               Catalog.Update_Element_Preserving_Key (Position, Decrement'Access);
+               Catalog.Update_Element (Position, Decrement'Access);
             end if;
             return;
          end if;
+         Next (Position);
       end loop;
       Found := False;
    end Search_Free_Slots;

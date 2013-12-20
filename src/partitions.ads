@@ -1,8 +1,7 @@
-with Ada.Containers.Doubly_Linked_Lists;
 with Ada.Containers.Ordered_Maps;
 with SGE.Jobs; use SGE.Jobs;
 with SGE.Partitions; use SGE.Partitions;
-with Ada.Containers.Ordered_Sets;
+with SGE.Host_Properties;
 
 package Partitions is
    procedure Init;
@@ -12,18 +11,17 @@ package Partitions is
    function Free_Slots return Natural;
 
 
-   package Slot_Maps is new Ada.Containers.Ordered_Maps (Key_Type => Positive,
-                                                         Element_Type => Natural);
-   subtype Slot_Map is Slot_Maps.Map;
+--   package Slot_Maps is new Ada.Containers.Ordered_Maps (Key_Type => Positive,
+--                                                         Element_Type => Natural);
+--   subtype Slot_Map is Slot_Maps.Map;
 
    -- Key : number of free slots
    -- Element : how many hosts with exactly Key free slots
 
    type Index_Card is record
-      Nodes : Partition;
+      Partition  : SGE.Host_Properties.Set_Of_Properties;
       Free_Hosts : Ada.Containers.Count_Type;
       Free_Slots : Natural;
-      Count : Natural;
    end record;
 
    function "<" (Left, Right : Index_Card) return Boolean;
@@ -39,12 +37,13 @@ package Partitions is
    -- not worthwhile
 
 
-   function New_Card (P : Partition; Free_Slots : Natural; Node_Count : Positive)
+   function New_Card (P : Partition; Free_Slots : Natural)
                       return Index_Card;
 
-   package Catalogs is new Ada.Containers.Ordered_Sets
-     (Element_Type => Index_Card);
+   package Catalogs is new Ada.Containers.Ordered_Maps
+     (Key_Type => Index_Card,
+     Element_Type => Natural);
 private
-   Catalog : Catalogs.Set;
+   Catalog : Catalogs.Map;
 
 end Partitions;
