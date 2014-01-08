@@ -59,7 +59,11 @@ package body Parser is
                begin
                   if Message = "denied: former resource request on consumable "
                     & """gpu"" of running job lacks in new resource request" then
-                     null; -- expected error message even for pending jobs
+                     null; -- harmless race condition
+                  elsif Message = "resource request on consumable "
+                    & """gpu"" of running job was not contained former resource request" then
+                     -- typo (missing "in") is part of qalter
+                     null; -- harmless race condition
                   elsif Message (Message'First .. Message'First + Length - 1) = Modified_Context then
                      null; -- signifies success
                   else
