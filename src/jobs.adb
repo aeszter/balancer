@@ -5,6 +5,7 @@ with Partitions;
 with Resources;
 with Statistics;
 with Parser;
+with Users;
 with Utils;
 with Ada.Strings.Fixed;
 with Ada.Strings.Maps;
@@ -79,7 +80,8 @@ package body Jobs is
 
    procedure Balance is
    begin
-      SGE.Jobs.Iterate (Balance_One_Job'Access);
+      SGE.Jobs.Iterate (Users.Add_Job'Access);
+      Users.Iterate (Balance_One_Job'Access);
    end Balance;
 
    function Is_Eligible (J : Job) return Boolean is
