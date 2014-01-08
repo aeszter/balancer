@@ -114,9 +114,9 @@ package body Partitions is
 
       function Selector (Card : Index_Card) return Boolean is
       begin
-         if Card.Free_Slots >= Get_Minimum_Slots (For_Job) then
+         if Card.Free_Slots >= Get_Minimum_CPU_Slots (For_Job) then
             Utils.Trace ("Found a node with" & Card.Free_Slots'Img
-                         & ">=" & Get_Minimum_Slots (For_Job)'Img
+                         & ">=" & Get_Minimum_CPU_Slots (For_Job)'Img
                          & " free slots in "
                          & SGE.Host_Properties.To_String (Card.Partition));
             return True;
