@@ -35,7 +35,10 @@ package body Jobs is
       Utils.Verbose_Message (SGE.Jobs.Count'Img & " pending jobs");
       SGE.Jobs.Prune_List (Keep => Is_Eligible'Access);
       SGE.Jobs.Iterate (Parser.Add_Pending_Since'Access);
-      Utils.Verbose_Message (SGE.Jobs.Count'Img & " eligible for re-queueing");
+      SGE.Jobs.Iterate (Users.Add_Job'Access);
+      Utils.Verbose_Message (SGE.Jobs.Count'Img
+                             & " by" & Users.Total_Users'Img
+                             & " users eligible for re-queueing");
    end Init;
 
 
@@ -80,7 +83,6 @@ package body Jobs is
 
    procedure Balance is
    begin
-      SGE.Jobs.Iterate (Users.Add_Job'Access);
       Users.Iterate (Balance_One_Job'Access);
    end Balance;
 

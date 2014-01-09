@@ -40,10 +40,15 @@ package body Users is
    procedure Iterate
      (Process : not null access procedure (J : SGE.Jobs.Job))
    is
+      procedure Wrapper (Position : Job_Lists.Cursor);
+
+      procedure Wrapper (Position : Job_Lists.Cursor) is
+      begin
+         Process (Job_Lists.Element (Position));
+      end Wrapper;
+
    begin
-      --  Generated stub: replace with real body!
-      pragma Compile_Time_Warning (Standard.True, "Iterate unimplemented");
-      raise Program_Error;
+      List.Iterate (Wrapper'Access);
    end Iterate;
 
    ---------
@@ -67,5 +72,10 @@ package body Users is
       return User_Name (Head (Source => User,
                               Count  => User_Name'Length));
    end To_User_Name;
+
+   function Total_Users return Natural is
+   begin
+      return Natural (List.Length);
+   end Total_Users;
 
 end Users;

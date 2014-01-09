@@ -4,6 +4,7 @@ with Ada.Containers.Ordered_Maps;
 package Users is
    procedure Add_Job (J : SGE.Jobs.Job);
    procedure Iterate (Process : not null access procedure (J : SGE.Jobs.Job));
+   function Total_Users return Natural;
 private
    type User_Name is new String (1 .. 7);
    type Index_Card is record
