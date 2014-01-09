@@ -2,6 +2,8 @@ with Ada.Text_IO;
 
 package body Statistics is
 
+   function No_Slots return Natural;
+
    -----------
    -- Print --
    -----------
@@ -15,8 +17,11 @@ package body Statistics is
       if Global_Stats.To_GPU > 0 then
          Ada.Text_IO.Put_Line (Global_Stats.To_GPU'Img & " jobs migrated to GPU queues");
       end if;
-      if Global_Stats.No_Slots > 0 then
-         Ada.Text_IO.Put_Line (Global_Stats.No_Slots'Img & " jobs not migrated because there are no free slots");
+      if No_Slots > 0 then
+         Ada.Text_IO.Put_Line (No_Slots'Img & " jobs not migrated ("
+                               & Global_Stats.No_CPU_Slots'Img & " to CPU/"
+                               & Global_Stats.No_GPU_Slots'Img & " to GPU) "
+                                 & "because there are no free slots");
       end if;
       if Global_Stats.Aimless > 0 then
          Ada.Text_IO.Put_Line (Global_Stats.Aimless'Img & " jobs without destination found");
@@ -32,10 +37,10 @@ package body Statistics is
       Global_Stats.To_CPU := Global_Stats.To_CPU + 1;
    end To_CPU;
 
-   procedure No_Slots is
+   procedure No_CPU is
    begin
-      Global_Stats.No_Slots := Global_Stats.No_Slots + 1;
-   end No_Slots;
+      Global_Stats.No_CPU_Slots := Global_Stats.No_CPU_Slots + 1;
+   end No_CPU;
 
    ------------
    -- To_GPU --
@@ -46,6 +51,11 @@ package body Statistics is
       Global_Stats.To_GPU := Global_Stats.To_GPU + 1;
    end To_GPU;
 
+   procedure No_GPU is
+   begin
+      Global_Stats.No_GPU_Slots := Global_Stats.No_GPU_Slots + 1;
+   end No_GPU;
+
    -----------------
    -- Aimless_Job --
    -----------------
@@ -55,4 +65,8 @@ package body Statistics is
       Global_Stats.Aimless := Global_Stats.Aimless + 1;
    end Aimless_Job;
 
+   function No_Slots return Natural is
+   begin
+      return Global_Stats.No_CPU_Slots + Global_Stats.No_GPU_Slots;
+   end No_Slots;
 end Statistics;

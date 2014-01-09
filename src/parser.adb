@@ -59,13 +59,21 @@ package body Parser is
                begin
                   if Message = "denied: former resource request on consumable "
                     & """gpu"" of running job lacks in new resource request" then
-                     null; -- expected error message even for pending jobs
+                     null; -- expected message even for qw jobs
+                  elsif Message = "denied: resource request on consumable "
+                    & """gpu"" of running job was not contained former resource request" then
+                     -- typo (missing "in") is part of qalter
+                     null; -- expected message even for qw jobs
                   elsif Message (Message'First .. Message'First + Length - 1) = Modified_Context then
                      null; -- signifies success
                   else
                      Utils.Verbose_Message ("Exit Status 1, evaluate output (Bug #1849)");
                      Utils.Error_Message ("#" & Message & "#");
                   end if;
+               exception
+                  when others =>
+                     Utils.Error_Message ("Unable to handle qalter exit status");
+                     raise;
                end;
             when others =>
                Utils.Error_Message ("qalter exited with status" & Exit_Status'Img

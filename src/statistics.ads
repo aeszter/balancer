@@ -4,14 +4,15 @@ package Statistics is
 
    procedure To_CPU;
    procedure To_GPU;
-   procedure No_Slots;
+   procedure No_CPU;
+   procedure No_GPU;
    procedure Aimless_Job;
 
 private
    type Data is record
       To_GPU, To_CPU : Natural := 0;
       Aimless        : Natural := 0;
-      No_Slots : Natural := 0;
+      No_CPU_Slots, No_GPU_Slots : Natural := 0;
    end record;
 
    Global_Stats : Data;

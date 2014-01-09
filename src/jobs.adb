@@ -5,6 +5,7 @@ with Partitions;
 with Resources;
 with Statistics;
 with Parser;
+with Users;
 with Utils;
 with Ada.Strings.Fixed;
 with Ada.Strings.Maps;
@@ -34,7 +35,10 @@ package body Jobs is
       Utils.Verbose_Message (SGE.Jobs.Count'Img & " pending jobs");
       SGE.Jobs.Prune_List (Keep => Is_Eligible'Access);
       SGE.Jobs.Iterate (Parser.Add_Pending_Since'Access);
-      Utils.Verbose_Message (SGE.Jobs.Count'Img & " eligible for re-queueing");
+      SGE.Jobs.Iterate (Users.Add_Job'Access);
+      Utils.Verbose_Message (SGE.Jobs.Count'Img
+                             & " by" & Users.Total_Users'Img
+                             & " users eligible for re-queueing");
    end Init;
 
 
@@ -51,14 +55,14 @@ package body Jobs is
             Migrate_To_GPU (J);
             Statistics.To_GPU;
          else
-            Statistics.No_Slots;
+            Statistics.No_GPU;
          end if;
       elsif Queued_For_GPU (J) then
          if Partitions.CPU_Available (For_Job => J, Mark_As_Used => True) then
             Migrate_To_CPU (J);
             Statistics.To_CPU;
          else
-            Statistics.No_Slots;
+            Statistics.No_CPU;
          end if;
       else
          Utils.Verbose_Message ("Job" & Get_ID (J) & " queued for neither CPU nor GPU");
@@ -73,13 +77,13 @@ package body Jobs is
          Ada.Text_IO.Put_Line ("Job" & Get_ID (J) & " unexpectedly lacks Balancer support: "
                                & Exception_Message (E));
       when E : others =>
-         Ada.Text_IO.Put_Line ("unexcpected error in job" & Get_ID (J) & ": "
+         Ada.Text_IO.Put_Line ("unexpected error in job " & Get_ID (J) & ": "
                                & Exception_Message (E));
    end Balance_One_Job;
 
    procedure Balance is
    begin
-      SGE.Jobs.Iterate (Balance_One_Job'Access);
+      Users.Iterate (Balance_One_Job'Access);
    end Balance;
 
    function Is_Eligible (J : Job) return Boolean is
