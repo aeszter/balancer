@@ -46,7 +46,7 @@ package body Jobs is
    -- Balance --
    -------------
 
-   procedure Balance_One_Job (J : Job) is
+   procedure Balance_CPU_GPU (J : Job) is
    begin
       Utils.Trace ("Looking at " & Get_Owner (J)
                    & "'s supported job " & Get_ID (J));
@@ -79,11 +79,11 @@ package body Jobs is
       when E : others =>
          Ada.Text_IO.Put_Line ("unexpected error in job " & Get_ID (J) & ": "
                                & Exception_Message (E));
-   end Balance_One_Job;
+   end Balance_CPU_GPU;
 
    procedure Balance is
    begin
-      Users.Iterate (Balance_One_Job'Access);
+      Users.Iterate (Balance_CPU_GPU'Access);
    end Balance;
 
    function Is_Eligible (J : Job) return Boolean is
