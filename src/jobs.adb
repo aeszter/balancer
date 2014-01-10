@@ -75,6 +75,22 @@ package body Jobs is
             Runtime       : constant String := Get_Context (J   => J,
                                                             Key => "RTREDUCE");
          begin
+            if Has_Context (J, "LASTRED") then
+               declare
+                  Last_Reduction : constant Time := Get_Last_Reduction (J);
+                  -- will not raise an exception since Has_Context ("LASTRED") is true
+                  Last_Migration : constant Time := Get_Last_Migration (J);
+               begin
+                  if Last_Reduction > Last_Migration then
+                     Utils.Trace ("already reduced");
+                     return;
+                  end if;
+               exception
+                  when Constraint_Error =>
+                     Utils.Trace ("already reduced");
+                     return;
+               end;
+            end if;
             if Clock > Pending_Since + Threshold then
                Alter_Slots (J, Slot_Range, Runtime);
                Statistics.Reduce_Range;
@@ -166,7 +182,8 @@ package body Jobs is
       Parser.Alter_Job (Job                => J,
                         Insecure_Resources => Resources.To_Requirement (New_Resources),
                         Slots              => Comma_Convert (
-                          Get_Context (J => J, Key => "SLOTSCPU")));
+                          Get_Context (J => J, Key => "SLOTSCPU")),
+                       Timestamp_Name => "LASTMIG");
    end Migrate_To_CPU;
 
    procedure Migrate_To_GPU (J : Job) is
@@ -176,7 +193,8 @@ package body Jobs is
       Parser.Alter_Job (Job                => J,
                         Insecure_Resources => Resources.To_Requirement (New_Resources),
                         Slots               => Comma_Convert (
-                          Get_Context (J => J, Key => "SLOTSGPU")));
+                          Get_Context (J => J, Key => "SLOTSGPU")),
+                       Timestamp_Name => "LASTMIG");
    end Migrate_To_GPU;
 
    procedure Alter_Slots (J : Job; To : String; Runtime : String) is
@@ -188,7 +206,8 @@ package body Jobs is
       end if;
       Parser.Alter_Job (Job                => J,
                         Insecure_Resources => Resources.To_Requirement (New_Resources),
-                        Slots              => To);
+                        Slots              => To,
+                       Timestamp_Name => "LASTRED");
    end Alter_Slots;
 
    function Comma_Convert (Encoded_String : String) return String is

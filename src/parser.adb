@@ -20,13 +20,14 @@ package body Parser is
    ---------------
 
    procedure Alter_Job
-     (Job       : SGE.Jobs.Job;
+     (Job                : SGE.Jobs.Job;
       Insecure_Resources : String := "";
-      Slots     : String := "")
+      Slots              : String := "";
+      Timestamp_Name     : String)
    is
       Requirements : Unbounded_String := To_Unbounded_String (Get_ID (Job));
       Output       : SGE.Spread_Sheets.Spread_Sheet;
-      Timestamp    : constant String := " -ac LASTMIG=" & Utils.Now;
+      Timestamp    : constant String := " -ac " & Timestamp_Name & "=" & Utils.Now;
       Exit_Status  : Natural;
    begin
       if Slots /= "" then
