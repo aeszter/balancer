@@ -6,6 +6,7 @@ with Utils; use Utils;
 with Jobs;
 with Partitions;
 with Statistics;
+with SGE.Utils;
 
 
 procedure Balancer is
@@ -14,6 +15,7 @@ procedure Balancer is
 begin
    Utils.Check_Options;
    Utils.Verbose_Message ("Balancer " & Utils.Version & " by aeszter@mpibpc.mpg.de");
+   Utils.Verbose_Message ("SGElib " & SGE.Utils.Version);
    Debug ("Debugging enabled");
 
    Jobs.Init;

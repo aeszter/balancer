@@ -23,6 +23,9 @@ package body Statistics is
                                & Global_Stats.No_GPU_Slots'Img & " to GPU) "
                                  & "because there are no free slots");
       end if;
+      if Global_Stats.Range_Reduction > 0 then
+         Ada.Text_IO.Put_Line (Global_Stats.Range_Reduction'Img & " jobs changed to lower slot numbers");
+      end if;
       if Global_Stats.Aimless > 0 then
          Ada.Text_IO.Put_Line (Global_Stats.Aimless'Img & " jobs without destination found");
       end if;
@@ -64,6 +67,11 @@ package body Statistics is
    begin
       Global_Stats.Aimless := Global_Stats.Aimless + 1;
    end Aimless_Job;
+
+   procedure Reduce_Range is
+   begin
+      Global_Stats.Range_Reduction := Global_Stats.Range_Reduction + 1;
+   end Reduce_Range;
 
    function No_Slots return Natural is
    begin
