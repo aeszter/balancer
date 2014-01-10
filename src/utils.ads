@@ -1,7 +1,7 @@
 with Ada.Numerics.Float_Random;
 
 package Utils is
-   Version : String := "devel:low-cores";
+   Version : String := "devel";
 
    Assumption_Error : exception;
 
