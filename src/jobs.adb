@@ -54,7 +54,7 @@ package body Jobs is
       use Ada.Calendar.Conversions;
    begin
       Utils.Trace ("Looking at " & Get_Owner (J)
-                   & "'s supported job " & Get_ID (J));
+                   & "'s job " & Get_ID (J));
       if not Supports_Balancer (J, Low_Cores) then
          Utils.Trace ("Low_Cores not supported");
          return;
@@ -117,7 +117,12 @@ package body Jobs is
    procedure Balance_CPU_GPU (J : Job) is
    begin
       Utils.Trace ("Looking at " & Get_Owner (J)
-                   & "'s supported job " & Get_ID (J));
+                   & "'s job " & Get_ID (J));
+      if not Supports_Balancer (J, CPU_GPU) then
+         Utils.Trace ("CPU_GPU not supported");
+         return;
+      end if;
+
       if Queued_For_CPU (J) then
          if Partitions.GPU_Available (Mark_As_Used => True) then
             Migrate_To_GPU (J);
