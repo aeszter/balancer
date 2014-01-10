@@ -75,7 +75,7 @@ package body Users is
 
    function Total_Users return Natural is
    begin
-      return Natural (List.Length);
+      return Natural (Count.Length);
    end Total_Users;
 
 end Users;
