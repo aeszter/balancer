@@ -9,11 +9,13 @@ package Jobs is
    procedure Init;
    procedure Balance;
    procedure Balance_CPU_GPU (J : Job);
+   procedure Extend_Slots_Below (J : Job);
    function Is_Eligible (J : Job) return Boolean;
    function Queued_For_CPU (J : Job) return Boolean;
    function Queued_For_GPU (J : Job) return Boolean;
    procedure Migrate_To_CPU (J : Job);
    procedure Migrate_To_GPU (J : Job);
+   procedure Alter_Slots (J : Job; To : String; Runtime : String);
 
 
 end Jobs;
