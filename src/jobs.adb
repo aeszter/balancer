@@ -20,6 +20,8 @@ with Utils;
 package body Jobs is
 
    function Comma_Convert (Encoded_String : String) return String;
+   procedure Balance_CPU_GPU (J : Job);
+   procedure Extend_Slots_Below (J : Job);
 
    ----------
    -- Init --
@@ -64,7 +66,8 @@ package body Jobs is
       end if;
 
       if Queued_For_CPU (J)
-        and then not Partitions.CPU_Available (J, Mark_As_Used => False) then
+        and then not Partitions.CPU_Available (J, Mark_As_Used => False,
+                                              Fulfilling => Partitions.Minimum) then
          declare
             Threshold     : constant Duration := Duration'Value (
                             Get_Context (J   => J,
@@ -137,7 +140,9 @@ package body Jobs is
             Statistics.No_GPU;
          end if;
       elsif Queued_For_GPU (J) then
-         if Partitions.CPU_Available (For_Job => J, Mark_As_Used => True) then
+         if Partitions.CPU_Available (For_Job      => J,
+                                      Mark_As_Used => True,
+                                      Fulfilling => Partitions.Minimum) then
             Migrate_To_CPU (J);
             Statistics.To_CPU;
          else

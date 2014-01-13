@@ -8,8 +8,6 @@ package Jobs is
 
    procedure Init;
    procedure Balance;
-   procedure Balance_CPU_GPU (J : Job);
-   procedure Extend_Slots_Below (J : Job);
    function Is_Eligible (J : Job) return Boolean;
    function Queued_For_CPU (J : Job) return Boolean;
    function Queued_For_GPU (J : Job) return Boolean;
