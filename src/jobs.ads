@@ -26,4 +26,5 @@ private
 
    Chain_Heads   : Job_Lists.List;
 
+   Max_Pending_On_Underutilisation : constant Positive := 10;
 end Jobs;

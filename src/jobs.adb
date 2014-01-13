@@ -22,6 +22,7 @@ package body Jobs is
    function Comma_Convert (Encoded_String : String) return String;
    procedure Balance_CPU_GPU (J : Job);
    procedure Extend_Slots_Below (J : Job);
+   procedure Extend_Slots_Above (Position : Job_Lists.Cursor);
 
    ----------
    -- Init --
@@ -149,6 +150,54 @@ package body Jobs is
                                & Exception_Message (E));
    end Extend_Slots_Below;
 
+   procedure Extend_Slots_Above (Position : Job_Lists.Cursor) is
+      use Ada.Calendar;
+      use Ada.Calendar.Conversions;
+      J    : constant Job := Job_Lists.Element (Position);
+      User : constant String := Get_Owner (J);
+
+   begin
+      Utils.Trace ("Looking at " & User & "'s job " & Get_ID (J));
+      if not Supports_Balancer (J, High_Cores) then
+         Utils.Trace ("High_Cores not supported");
+         return;
+      end if;
+
+      if Users.Count_Jobs (For_User => User) < Max_Pending_On_Underutilisation then
+         declare
+            Slot_Range : constant String := Comma_Convert (
+                            Get_Context (J   => J,
+                                         Key => "SLOTSEXTEND"));
+         begin
+            if Has_Context (J, "LASTEXT") then
+               Utils.Trace ("already extended");
+               return;
+            end if;
+            if Partitions.CPU_Available (For_Job      => J,
+                                         Mark_As_Used => False,
+                                         Fulfilling => Partitions.Maximum) then
+               Extend_Slots (J, Slot_Range);
+               Statistics.Extend_Range;
+            else
+               Utils.Trace ("too few slots free");
+            end if;
+         end;
+      else
+         Utils.Trace ("user has too many qw jobs");
+      end if;
+   exception
+      when E : Parser.Security_Error =>
+         Ada.Text_IO.Put_Line (Exception_Message (E) & " while processing job" & Get_ID (J));
+      when E : SGE.Parser.Parser_Error =>
+         Ada.Text_IO.Put_Line (Exception_Message (E) & " while processing job" & Get_ID (J));
+      when E : Support_Error =>
+         Ada.Text_IO.Put_Line ("Job" & Get_ID (J) & " unexpectedly lacks Balancer support: "
+                               & Exception_Message (E));
+      when E : others =>
+         Ada.Text_IO.Put_Line ("unexpected error in job " & Get_ID (J) & ": "
+                               & Exception_Message (E));
+   end Extend_Slots_Above;
+
    procedure Balance_CPU_GPU (J : Job) is
    begin
       if On_Hold (J) then
@@ -200,6 +249,8 @@ package body Jobs is
       Users.Iterate (Extend_Slots_Below'Access);
       Utils.Trace ("Shifting jobs between CPU and GPU");
       Users.Iterate (Balance_CPU_GPU'Access);
+      Utils.Trace ("Extending slot ranges to more cores");
+      Chain_Heads.Iterate (Extend_Slots_Above'Access);
    end Balance;
 
    function Is_Eligible (J : Job) return Boolean is
@@ -253,6 +304,16 @@ package body Jobs is
                         Slots              => To,
                        Timestamp_Name => "LASTRED");
    end Reduce_Slots;
+
+   procedure Extend_Slots (J : Job; To : String) is
+      New_Resources : SGE.Resources.Hashed_List := Get_Hard_Resources (J);
+   begin
+      New_Resources.Delete (Key => To_Unbounded_String ("gpu"));
+      Parser.Alter_Job (Job                => J,
+                        Insecure_Resources => Resources.To_Requirement (New_Resources),
+                        Slots              => To,
+                       Timestamp_Name => "LASTEXT");
+   end Extend_Slots;
 
    function Comma_Convert (Encoded_String : String) return String is
       package Str renames Ada.Strings;
