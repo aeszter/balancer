@@ -95,7 +95,7 @@ package body Jobs is
                end;
             end if;
             if Clock > Pending_Since + Threshold then
-               Alter_Slots (J, Slot_Range, Runtime);
+               Reduce_Slots (J, Slot_Range, Runtime);
                Statistics.Reduce_Range;
             else
                Utils.Trace ("too recent");
@@ -207,7 +207,7 @@ package body Jobs is
                        Timestamp_Name => "LASTMIG");
    end Migrate_To_GPU;
 
-   procedure Alter_Slots (J : Job; To : String; Runtime : String) is
+   procedure Reduce_Slots (J : Job; To : String; Runtime : String) is
       New_Resources : SGE.Resources.Hashed_List := Get_Hard_Resources (J);
    begin
       if Runtime /= "" then
@@ -218,7 +218,7 @@ package body Jobs is
                         Insecure_Resources => Resources.To_Requirement (New_Resources),
                         Slots              => To,
                        Timestamp_Name => "LASTRED");
-   end Alter_Slots;
+   end Reduce_Slots;
 
    function Comma_Convert (Encoded_String : String) return String is
       package Str renames Ada.Strings;

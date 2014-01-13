@@ -15,7 +15,7 @@ package Jobs is
    function Queued_For_GPU (J : Job) return Boolean;
    procedure Migrate_To_CPU (J : Job);
    procedure Migrate_To_GPU (J : Job);
-   procedure Alter_Slots (J : Job; To : String; Runtime : String);
+   procedure Reduce_Slots (J : Job; To : String; Runtime : String);
 
 
 end Jobs;
