@@ -53,6 +53,9 @@ package body Jobs is
       use Ada.Calendar;
       use Ada.Calendar.Conversions;
    begin
+      if On_Hold (J) then
+         return;
+      end if;
       Utils.Trace ("Looking at " & Get_Owner (J)
                    & "'s job " & Get_ID (J));
       if not Supports_Balancer (J, Low_Cores) then
@@ -116,6 +119,9 @@ package body Jobs is
 
    procedure Balance_CPU_GPU (J : Job) is
    begin
+      if On_Hold (J) then
+         return;
+      end if;
       Utils.Trace ("Looking at " & Get_Owner (J)
                    & "'s job " & Get_ID (J));
       if not Supports_Balancer (J, CPU_GPU) then
@@ -164,8 +170,7 @@ package body Jobs is
 
    function Is_Eligible (J : Job) return Boolean is
    begin
-      return not On_Hold (J)
-        and then Supports_Balancer (J);
+      return Supports_Balancer (J);
    end Is_Eligible;
 
    function Queued_For_CPU (J : Job) return Boolean is

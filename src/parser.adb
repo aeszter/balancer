@@ -98,6 +98,9 @@ package body Parser is
       pragma Unreferenced (Output);
       -- Can we do something useful with the output?
    begin
+      if On_Hold (J) then
+         return;
+      end if;
       if Get_Context (J, "PENDINGSINCE") = "" then
          if not Utils.Dry_Run ("qalter "  & Params) then
             SGE.Parser.Setup_No_XML (Command     => "qalter",

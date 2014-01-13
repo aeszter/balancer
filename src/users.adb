@@ -19,6 +19,9 @@ package body Users is
       User : constant User_Name := To_User_Name (SGE.Jobs.Get_Owner (J));
       Position : Job_Counts.Cursor;
    begin
+      if SGE.Jobs.On_Hold (J) then
+         return;
+      end if;
       Key.User := User;
       if Count.Contains (User) then
          Position := Count.Find (User);
