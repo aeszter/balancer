@@ -41,11 +41,40 @@ package body Jobs is
       SGE.Jobs.Prune_List (Keep => Is_Eligible'Access);
       SGE.Jobs.Iterate (Parser.Add_Pending_Since'Access);
       SGE.Jobs.Iterate (Users.Add_Job'Access);
+      SGE.Jobs.Iterate (Add_Chain_Head'Access);
       Utils.Verbose_Message (SGE.Jobs.Count'Img
                              & " by" & Users.Total_Users'Img
                              & " users eligible for re-queueing");
+      Utils.Verbose_Message (Chain_Heads.Length'Img & " chain heads found");
    end Init;
 
+   procedure Add_Chain_Head (J : Job) is
+      procedure Test_Hold (ID : Natural);
+
+      Any_Held : Boolean := False;
+
+      procedure Test_Hold (ID : Natural) is
+      begin
+         if On_Hold (Find_Job (ID)) then
+            Any_Held := True;
+         end if;
+      exception
+         when Constraint_Error =>
+            --  job not listed, i.e. not pending
+            null;
+      end Test_Hold;
+
+   begin
+      if not On_Hold (J) then
+         return;
+      end if;
+      Iterate_Predecessors (J, Test_Hold'Access);
+      if Any_Held then
+         return;
+      end if;
+      Chain_Heads.Append (J);
+      Utils.Trace ("Found chain head " & Get_ID (J));
+   end Add_Chain_Head;
 
    -------------
    -- Balance --
@@ -235,5 +264,10 @@ package body Jobs is
       return Str.Fixed.Translate (Source  => Encoded_String,
                                   Mapping => Conversion);
    end Comma_Convert;
+
+   function Equal_Jobs (Left, Right : Job) return Boolean is
+   begin
+      return Get_ID (Left) = Get_ID (Right);
+   end Equal_Jobs;
 
 end Jobs;
