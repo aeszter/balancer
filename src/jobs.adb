@@ -8,6 +8,7 @@ with Interfaces.C;
 with SGE.Jobs; use SGE.Jobs;
 with SGE.Parser;
 with SGE.Resources;
+with SGE.Utils; use SGE.Utils;
 with Partitions;
 with Resources;
 with Statistics;
@@ -88,7 +89,7 @@ package body Jobs is
       if On_Hold (J) then
          return;
       end if;
-      Utils.Trace ("Looking at " & Get_Owner (J)
+      Utils.Trace ("Looking at " & To_String (Get_Owner (J))
                    & "'s job " & Get_ID (J));
       if not Supports_Balancer (J, Low_Cores) then
          Utils.Trace ("Low_Cores not supported");
@@ -154,9 +155,13 @@ package body Jobs is
       use Ada.Calendar;
       use Ada.Calendar.Conversions;
       J    : constant Job := Job_Lists.Element (Position);
-      User : constant String := Get_Owner (J);
+      User : constant String := To_String (Get_Owner (J));
 
    begin
+      if Quota_Inhibited (J) then
+         Statistics.Quota_Inhibited;
+         return;
+      end if;
       Utils.Trace ("Looking at " & User & "'s job " & Get_ID (J));
       if not Supports_Balancer (J, High_Cores) then
          Utils.Trace ("High_Cores not supported");
@@ -203,7 +208,7 @@ package body Jobs is
       if On_Hold (J) then
          return;
       end if;
-      Utils.Trace ("Looking at " & Get_Owner (J)
+      Utils.Trace ("Looking at " & To_String (Get_Owner (J))
                    & "'s job " & Get_ID (J));
       if not Supports_Balancer (J, CPU_GPU) then
          Utils.Trace ("CPU_GPU not supported");

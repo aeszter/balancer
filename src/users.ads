@@ -1,5 +1,6 @@
 with SGE.Jobs;
 with Ada.Containers.Ordered_Maps;
+with SGE.Utils; use SGE.Utils;
 
 package Users is
    procedure Add_Job (J : SGE.Jobs.Job);
@@ -7,7 +8,6 @@ package Users is
    function Total_Users return Natural;
    function Count_Jobs (For_User : String) return Natural;
 private
-   type User_Name is new String (1 .. 7);
    type Index_Card is record
       User : User_Name;
       Counter : Positive;

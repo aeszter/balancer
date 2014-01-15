@@ -1,4 +1,3 @@
-with Ada.Strings.Fixed;
 package body Users is
 
    -------------
@@ -6,7 +5,6 @@ package body Users is
    -------------
 
    procedure Increment (Key : User_Name; Element : in out Positive);
-   function To_User_Name (User : String) return User_Name;
 
    procedure Increment (Key : User_Name; Element : in out Positive) is
       pragma Unreferenced (Key);
@@ -16,7 +14,7 @@ package body Users is
 
    procedure Add_Job (J : SGE.Jobs.Job) is
       Key : Index_Card;
-      User : constant User_Name := To_User_Name (SGE.Jobs.Get_Owner (J));
+      User : constant User_Name := SGE.Jobs.Get_Owner (J);
       Position : Job_Counts.Cursor;
    begin
       if SGE.Jobs.On_Hold (J) then
@@ -69,12 +67,6 @@ package body Users is
       end if;
    end "<";
 
-   function To_User_Name (User : String) return User_Name is
-      use Ada.Strings.Fixed;
-   begin
-      return User_Name (Head (Source => User,
-                              Count  => User_Name'Length));
-   end To_User_Name;
 
    function Total_Users return Natural is
    begin
