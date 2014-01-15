@@ -81,4 +81,9 @@ package body Users is
       return Natural (Count.Length);
    end Total_Users;
 
+   function Count_Jobs (For_User : String) return Natural is
+   begin
+      return Count.Element (Key => To_User_Name (For_User));
+   end Count_Jobs;
+
 end Users;

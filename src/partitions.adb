@@ -106,17 +106,20 @@ package body Partitions is
    -- CPU_Available --
    -------------------
 
-   function CPU_Available (For_Job : Job; Mark_As_Used : Boolean) return Boolean
+   function CPU_Available (For_Job      : Job;
+                           Mark_As_Used : Boolean;
+                           Fulfilling   : Selection_Criteria) return Boolean
    is
       function Selector (Card : Index_Card) return Boolean;
 
       Found : Boolean;
+      Minimum_Slots : Positive;
 
       function Selector (Card : Index_Card) return Boolean is
       begin
-         if Card.Free_Slots >= Get_Minimum_CPU_Slots (For_Job) then
+         if Card.Free_Slots >= Minimum_Slots then
             Utils.Trace ("Found a node with" & Card.Free_Slots'Img
-                         & ">=" & Get_Minimum_CPU_Slots (For_Job)'Img
+                         & ">=" & Minimum_Slots'Img
                          & " free slots in "
                          & SGE.Host_Properties.To_String (Card.Partition));
             return True;
@@ -126,6 +129,11 @@ package body Partitions is
       end Selector;
 
    begin
+      case Fulfilling is
+         when Minimum => Minimum_Slots := Get_Minimum_CPU_Slots (For_Job);
+         when Maximum => Minimum_Slots := Get_Maximum_CPU_Slots (For_Job);
+      end case;
+
       Search_Free_Slots (Selector => Selector'Access,
                          Mark_As_Used => Mark_As_Used,
                          Found        => Found);

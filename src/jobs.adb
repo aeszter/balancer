@@ -20,6 +20,9 @@ with Utils;
 package body Jobs is
 
    function Comma_Convert (Encoded_String : String) return String;
+   procedure Balance_CPU_GPU (J : Job);
+   procedure Extend_Slots_Below (J : Job);
+   procedure Extend_Slots_Above (Position : Job_Lists.Cursor);
 
    ----------
    -- Init --
@@ -39,11 +42,40 @@ package body Jobs is
       SGE.Jobs.Prune_List (Keep => Is_Eligible'Access);
       SGE.Jobs.Iterate (Parser.Add_Pending_Since'Access);
       SGE.Jobs.Iterate (Users.Add_Job'Access);
+      SGE.Jobs.Iterate (Add_Chain_Head'Access);
       Utils.Verbose_Message (SGE.Jobs.Count'Img
                              & " by" & Users.Total_Users'Img
                              & " users eligible for re-queueing");
+      Utils.Verbose_Message (Chain_Heads.Length'Img & " chain heads found");
    end Init;
 
+   procedure Add_Chain_Head (J : Job) is
+      procedure Test_Hold (ID : Natural);
+
+      Any_Held : Boolean := False;
+
+      procedure Test_Hold (ID : Natural) is
+      begin
+         if On_Hold (Find_Job (ID)) then
+            Any_Held := True;
+         end if;
+      exception
+         when Constraint_Error =>
+            --  job not listed, i.e. not pending
+            null;
+      end Test_Hold;
+
+   begin
+      if not On_Hold (J) then
+         return;
+      end if;
+      Iterate_Predecessors (J, Test_Hold'Access);
+      if Any_Held then
+         return;
+      end if;
+      Chain_Heads.Append (J);
+      Utils.Trace ("Found chain head " & Get_ID (J));
+   end Add_Chain_Head;
 
    -------------
    -- Balance --
@@ -64,7 +96,8 @@ package body Jobs is
       end if;
 
       if Queued_For_CPU (J)
-        and then not Partitions.CPU_Available (J, Mark_As_Used => False) then
+        and then not Partitions.CPU_Available (J, Mark_As_Used => False,
+                                              Fulfilling => Partitions.Minimum) then
          declare
             Threshold     : constant Duration := Duration'Value (
                             Get_Context (J   => J,
@@ -117,6 +150,54 @@ package body Jobs is
                                & Exception_Message (E));
    end Extend_Slots_Below;
 
+   procedure Extend_Slots_Above (Position : Job_Lists.Cursor) is
+      use Ada.Calendar;
+      use Ada.Calendar.Conversions;
+      J    : constant Job := Job_Lists.Element (Position);
+      User : constant String := Get_Owner (J);
+
+   begin
+      Utils.Trace ("Looking at " & User & "'s job " & Get_ID (J));
+      if not Supports_Balancer (J, High_Cores) then
+         Utils.Trace ("High_Cores not supported");
+         return;
+      end if;
+
+      if Users.Count_Jobs (For_User => User) < Max_Pending_On_Underutilisation then
+         declare
+            Slot_Range : constant String := Comma_Convert (
+                            Get_Context (J   => J,
+                                         Key => "SLOTSEXTEND"));
+         begin
+            if Has_Context (J, "LASTEXT") then
+               Utils.Trace ("already extended");
+               return;
+            end if;
+            if Partitions.CPU_Available (For_Job      => J,
+                                         Mark_As_Used => False,
+                                         Fulfilling => Partitions.Maximum) then
+               Extend_Slots (J, Slot_Range);
+               Statistics.Extend_Range;
+            else
+               Utils.Trace ("too few slots free");
+            end if;
+         end;
+      else
+         Utils.Trace ("user has too many qw jobs");
+      end if;
+   exception
+      when E : Parser.Security_Error =>
+         Ada.Text_IO.Put_Line (Exception_Message (E) & " while processing job" & Get_ID (J));
+      when E : SGE.Parser.Parser_Error =>
+         Ada.Text_IO.Put_Line (Exception_Message (E) & " while processing job" & Get_ID (J));
+      when E : Support_Error =>
+         Ada.Text_IO.Put_Line ("Job" & Get_ID (J) & " unexpectedly lacks Balancer support: "
+                               & Exception_Message (E));
+      when E : others =>
+         Ada.Text_IO.Put_Line ("unexpected error in job " & Get_ID (J) & ": "
+                               & Exception_Message (E));
+   end Extend_Slots_Above;
+
    procedure Balance_CPU_GPU (J : Job) is
    begin
       if On_Hold (J) then
@@ -137,7 +218,9 @@ package body Jobs is
             Statistics.No_GPU;
          end if;
       elsif Queued_For_GPU (J) then
-         if Partitions.CPU_Available (For_Job => J, Mark_As_Used => True) then
+         if Partitions.CPU_Available (For_Job      => J,
+                                      Mark_As_Used => True,
+                                      Fulfilling => Partitions.Minimum) then
             Migrate_To_CPU (J);
             Statistics.To_CPU;
          else
@@ -166,6 +249,8 @@ package body Jobs is
       Users.Iterate (Extend_Slots_Below'Access);
       Utils.Trace ("Shifting jobs between CPU and GPU");
       Users.Iterate (Balance_CPU_GPU'Access);
+      Utils.Trace ("Extending slot ranges to more cores");
+      Chain_Heads.Iterate (Extend_Slots_Above'Access);
    end Balance;
 
    function Is_Eligible (J : Job) return Boolean is
@@ -220,6 +305,16 @@ package body Jobs is
                        Timestamp_Name => "LASTRED");
    end Reduce_Slots;
 
+   procedure Extend_Slots (J : Job; To : String) is
+      New_Resources : SGE.Resources.Hashed_List := Get_Hard_Resources (J);
+   begin
+      New_Resources.Delete (Key => To_Unbounded_String ("gpu"));
+      Parser.Alter_Job (Job                => J,
+                        Insecure_Resources => Resources.To_Requirement (New_Resources),
+                        Slots              => To,
+                       Timestamp_Name => "LASTEXT");
+   end Extend_Slots;
+
    function Comma_Convert (Encoded_String : String) return String is
       package Str renames Ada.Strings;
 
@@ -230,5 +325,10 @@ package body Jobs is
       return Str.Fixed.Translate (Source  => Encoded_String,
                                   Mapping => Conversion);
    end Comma_Convert;
+
+   function Equal_Jobs (Left, Right : Job) return Boolean is
+   begin
+      return Get_ID (Left) = Get_ID (Right);
+   end Equal_Jobs;
 
 end Jobs;

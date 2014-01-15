@@ -24,10 +24,16 @@ package body Statistics is
                                  & "because there are no free slots");
       end if;
       if Global_Stats.Range_Reduction > 0 then
-         Ada.Text_IO.Put_Line (Global_Stats.Range_Reduction'Img & " jobs changed to lower slot numbers");
+         Ada.Text_IO.Put_Line (Global_Stats.Range_Reduction'Img
+                               & " jobs changed to lower slot numbers");
+      end if;
+      if Global_Stats.Range_Extension > 0 then
+         Ada.Text_IO.Put_Line (Global_Stats.Range_Extension'Img
+                               & " jobs changed to higher slot numbers");
       end if;
       if Global_Stats.Aimless > 0 then
-         Ada.Text_IO.Put_Line (Global_Stats.Aimless'Img & " jobs without destination found");
+         Ada.Text_IO.Put_Line (Global_Stats.Aimless'Img
+                               & " jobs without destination found");
       end if;
    end Print;
 
@@ -67,6 +73,11 @@ package body Statistics is
    begin
       Global_Stats.Aimless := Global_Stats.Aimless + 1;
    end Aimless_Job;
+
+   procedure Extend_Range is
+   begin
+      Global_Stats.Range_Extension := Global_Stats.Range_Extension + 1;
+   end Extend_Range;
 
    procedure Reduce_Range is
    begin
