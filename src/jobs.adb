@@ -15,6 +15,7 @@ with Statistics;
 with Parser;
 with Users;
 with Utils;
+with SGE.Quota;
 
 
 
@@ -39,8 +40,14 @@ package body Jobs is
       Create_Overlay (SGE.Parser.Get_Job_Nodes_From_Qstat_J (SGE_Out));
       Apply_Overlay;
       SGE.Parser.Free;
+      SGE_Out := SGE.Parser.Setup (Command  => "qquota",
+                                   Selector => "-l slots -u *");
+      SGE.Quota.Append_List (SGE.Parser.Get_Elements_By_Tag_Name (Doc      => SGE_Out,
+                                                                  Tag_Name => "qquota_rule"));
+      SGE.Parser.Free;
       Utils.Verbose_Message (SGE.Jobs.Count'Img & " pending jobs");
       SGE.Jobs.Prune_List (Keep => Is_Eligible'Access);
+      SGE.Jobs.Update_Quota;
       SGE.Jobs.Iterate (Parser.Add_Pending_Since'Access);
       SGE.Jobs.Iterate (Users.Add_Job'Access);
       SGE.Jobs.Iterate (Add_Chain_Head'Access);
@@ -87,6 +94,10 @@ package body Jobs is
       use Ada.Calendar.Conversions;
    begin
       if On_Hold (J) then
+         return;
+      end if;
+      if Quota_Inhibited (J) then
+         Statistics.Quota_Inhibited;
          return;
       end if;
       Utils.Trace ("Looking at " & To_String (Get_Owner (J))
@@ -206,6 +217,10 @@ package body Jobs is
    procedure Balance_CPU_GPU (J : Job) is
    begin
       if On_Hold (J) then
+         return;
+      end if;
+      if Quota_Inhibited (J) then
+         Statistics.Quota_Inhibited;
          return;
       end if;
       Utils.Trace ("Looking at " & To_String (Get_Owner (J))

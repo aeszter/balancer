@@ -25,6 +25,10 @@ package body Statistics is
               & Global_Stats.No_GPU_Slots'Img & " to GPU) "
                 & "because there are no free slots");
       end if;
+      if Global_Stats.Quota > 0 then
+         Put (Global_Stats.Quota'Img
+               & " jobs not migrated because of a quota limit");
+      end if;
       if Global_Stats.Range_Reduction > 0 then
          Put (Global_Stats.Range_Reduction'Img
                & " jobs changed to lower slot numbers");
@@ -65,6 +69,11 @@ package body Statistics is
    begin
       Global_Stats.No_GPU_Slots := Global_Stats.No_GPU_Slots + 1;
    end No_GPU;
+
+   procedure Quota_Inhibited is
+   begin
+      Global_Stats.Quota := Global_Stats.Quota + 1;
+   end Quota_Inhibited;
 
    -----------------
    -- Aimless_Job --

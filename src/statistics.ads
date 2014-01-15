@@ -9,12 +9,14 @@ package Statistics is
    procedure Aimless_Job;
    procedure Reduce_Range;
    procedure Extend_Range;
+   procedure Quota_Inhibited;
 
 private
    type Data is record
       To_GPU, To_CPU : Natural := 0;
       Aimless        : Natural := 0;
       No_CPU_Slots, No_GPU_Slots : Natural := 0;
+      Quota          : Natural := 0;
       Range_Reduction            : Natural := 0;
       Range_Extension : Natural := 0;
    end record;
