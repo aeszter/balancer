@@ -32,6 +32,13 @@ package body Jobs is
 
    procedure Init is
       SGE_Out : SGE.Parser.Tree;
+      function Not_On_Hold (J : Job) return Boolean;
+
+      function Not_On_Hold (J : Job) return Boolean is
+      begin
+         return not On_Hold (J);
+      end Not_On_Hold;
+
    begin
       SGE_Out := SGE.Parser.Setup (Selector => "-u * -r -s p");
       Append_List (SGE.Parser.Get_Job_Nodes_From_Qstat_U (SGE_Out));
@@ -45,13 +52,13 @@ package body Jobs is
       SGE.Quota.Append_List (SGE.Parser.Get_Elements_By_Tag_Name (Doc      => SGE_Out,
                                                                   Tag_Name => "qquota_rule"));
       SGE.Parser.Free;
-      Utils.Verbose_Message (SGE.Jobs.Count'Img & " pending jobs");
+      Utils.Verbose_Message (SGE.Jobs.Count (Not_On_Hold'Access)'Img & " pending jobs");
       SGE.Jobs.Prune_List (Keep => Is_Eligible'Access);
       SGE.Jobs.Update_Quota;
       SGE.Jobs.Iterate (Parser.Add_Pending_Since'Access);
       SGE.Jobs.Iterate (Users.Add_Job'Access);
       SGE.Jobs.Iterate (Add_Chain_Head'Access);
-      Utils.Verbose_Message (SGE.Jobs.Count'Img
+      Utils.Verbose_Message (SGE.Jobs.Count (Not_On_Hold'Access)'Img
                              & " by" & Users.Total_Users'Img
                              & " users eligible for re-queueing");
       Utils.Verbose_Message (Chain_Heads.Length'Img & " chain heads found");
