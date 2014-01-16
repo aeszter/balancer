@@ -4,8 +4,12 @@ with SGE.Partitions; use SGE.Partitions;
 with SGE.Host_Properties;
 
 package Partitions is
+
+   type Selection_Criteria is (Minimum, Maximum);
    procedure Init;
-   function CPU_Available (For_Job : Job; Mark_As_Used : Boolean) return Boolean;
+   function CPU_Available (For_Job      : Job;
+                           Mark_As_Used : Boolean;
+                           Fulfilling   : Selection_Criteria) return Boolean;
    function GPU_Available (Mark_As_Used : Boolean) return Boolean;
 
    function Free_Slots return Natural;
