@@ -282,7 +282,7 @@ package body Jobs is
 
    function Is_Eligible (J : Job) return Boolean is
    begin
-      return Supports_Balancer (J);
+      return Supports_Balancer (J) and then not Has_Error (J);
    end Is_Eligible;
 
    function Queued_For_CPU (J : Job) return Boolean is
