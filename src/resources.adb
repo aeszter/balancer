@@ -10,6 +10,11 @@ package body Resources is
    --------------------
 
    function To_Requirement (From : SGE.Resources.Hashed_List) return String is
+      function Seconds (Resource : SGE.Resources.Resource) return String;
+
+      Result : Unbounded_String;
+      Name : Unbounded_String;
+      Position : SGE.Resources.Resource_Lists.Cursor := From.First;
 
       function Seconds (Resource : SGE.Resources.Resource) return String is
       begin
@@ -17,9 +22,6 @@ package body Resources is
                                         Side   => Ada.Strings.Left);
       end Seconds;
 
-      Result : Unbounded_String;
-      Name : Unbounded_String;
-      Position : SGE.Resources.Resource_Lists.Cursor := From.First;
    begin
       loop
          Name := Key (Position);
