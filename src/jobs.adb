@@ -20,6 +20,7 @@ with SGE.Quota;
 
 
 package body Jobs is
+   Chain_Count : Natural;
 
    function Comma_Convert (Encoded_String : String) return String;
    procedure Balance_CPU_GPU (J : Job);
@@ -57,11 +58,13 @@ package body Jobs is
       SGE.Jobs.Update_Quota;
       SGE.Jobs.Iterate (Parser.Add_Pending_Since'Access);
       SGE.Jobs.Iterate (Users.Add_Job'Access);
+      Chain_Count := 0;
       SGE.Jobs.Iterate (Add_Chain_Head'Access);
       Utils.Verbose_Message (SGE.Jobs.Count (Not_On_Hold'Access)'Img
                              & " by" & Users.Total_Users'Img
                              & " users eligible for re-queueing");
-      Utils.Verbose_Message (Chain_Heads.Length'Img & " chain heads found");
+      Utils.Verbose_Message (Chain_Count'Img & " chain heads found ("
+                             & Chain_Heads.Length'Img & " with extension support)");
    end Init;
 
    procedure Add_Chain_Head (J : Job) is
@@ -86,6 +89,10 @@ package body Jobs is
       end if;
       Iterate_Predecessors (J, Test_Hold'Access);
       if Any_Held then
+         return;
+      end if;
+      Chain_Count := Chain_Count + 1;
+      if not Supports_Balancer (J, High_Cores) then
          return;
       end if;
       Chain_Heads.Append (J);
