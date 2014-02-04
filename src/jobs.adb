@@ -111,7 +111,7 @@ package body Jobs is
          return;
       end if;
       if Quota_Inhibited (J) then
-         Statistics.Quota_Inhibited;
+         Statistics.Quota_Inhibited (Get_ID (J));
          return;
       end if;
       Utils.Trace ("Looking at " & To_String (Get_Owner (J))
@@ -184,7 +184,7 @@ package body Jobs is
 
    begin
       if Quota_Inhibited (J) then
-         Statistics.Quota_Inhibited;
+         Statistics.Quota_Inhibited (Get_ID (J));
          return;
       end if;
       Utils.Trace ("Looking at " & User & "'s job " & Get_ID (J));
@@ -234,7 +234,7 @@ package body Jobs is
          return;
       end if;
       if Quota_Inhibited (J) then
-         Statistics.Quota_Inhibited;
+         Statistics.Quota_Inhibited (Get_ID (J));
          return;
       end if;
       Utils.Trace ("Looking at " & To_String (Get_Owner (J))
