@@ -25,7 +25,7 @@ package body Parser is
       Slots              : String := "";
       Timestamp_Name     : String)
    is
-      Requirements : Unbounded_String := To_Unbounded_String (Get_ID (Job));
+      Requirements : Unbounded_String := To_Unbounded_String (String'(Get_ID (Job)));
       Output       : SGE.Spread_Sheets.Spread_Sheet;
       Timestamp    : constant String := " -ac " & Timestamp_Name & "=" & Utils.Now;
       Exit_Status  : Natural;

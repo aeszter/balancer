@@ -362,7 +362,7 @@ package body Jobs is
 
    function Equal_Jobs (Left, Right : Job) return Boolean is
    begin
-      return Get_ID (Left) = Get_ID (Right);
+      return Positive'(Get_ID (Left)) = Get_ID (Right);
    end Equal_Jobs;
 
 end Jobs;
