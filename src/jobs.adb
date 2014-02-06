@@ -16,6 +16,7 @@ with Parser;
 with Users;
 with Utils;
 with SGE.Quota;
+with SGE.Context;
 
 
 
@@ -111,7 +112,7 @@ package body Jobs is
          return;
       end if;
       if Quota_Inhibited (J) then
-         Statistics.Quota_Inhibited (Get_ID (J));
+         Statistics.Quota_Inhibited (Positive'(Get_ID (J)));
          return;
       end if;
       Utils.Trace ("Looking at " & To_String (Get_Owner (J))
@@ -127,17 +128,17 @@ package body Jobs is
          declare
             Threshold     : constant Duration := Duration'Value (
                             Get_Context (J   => J,
-                                         Key => "WAITREDUCE"));
+                                         Key => SGE.Context.Wait_Reduce));
             Slot_Range    : constant String := Comma_Convert (
                             Get_Context (J   => J,
-                                         Key => "SLOTSREDUCE"));
+                                         Key => SGE.Context.Slots_Reduce));
             Pending_Since : constant Time := To_Ada_Time (Interfaces.C.long'Value (
                             Get_Context (J   => J,
-                                         Key => "PENDINGSINCE")));
+                                         Key => SGE.Context.Pending_Since)));
             Runtime       : constant String := Get_Context (J   => J,
-                                                            Key => "RTREDUCE");
+                                                            Key => SGE.Context.Reduced_Runtime);
          begin
-            if Has_Context (J, "LASTRED") then
+            if Has_Context (J, SGE.Context.Last_Reduction) then
                declare
                   Last_Reduction : constant Time := Get_Last_Reduction (J);
                   -- will not raise an exception since Has_Context ("LASTRED") is true
@@ -197,9 +198,9 @@ package body Jobs is
          declare
             Slot_Range : constant String := Comma_Convert (
                             Get_Context (J   => J,
-                                         Key => "SLOTSEXTEND"));
+                                         Key => SGE.Context.Slots_Extend));
          begin
-            if Has_Context (J, "LASTEXT") then
+            if Has_Context (J, SGE.Context.Last_Extension) then
                Utils.Trace ("already extended");
                return;
             end if;
@@ -311,7 +312,7 @@ package body Jobs is
       Parser.Alter_Job (Job                => J,
                         Insecure_Resources => Resources.To_Requirement (New_Resources),
                         Slots              => Comma_Convert (
-                          Get_Context (J => J, Key => "SLOTSCPU")),
+                          Get_Context (J => J, Key => SGE.Context.Slots_CPU)),
                        Timestamp_Name => "LASTMIG");
    end Migrate_To_CPU;
 
@@ -322,7 +323,7 @@ package body Jobs is
       Parser.Alter_Job (Job                => J,
                         Insecure_Resources => Resources.To_Requirement (New_Resources),
                         Slots               => Comma_Convert (
-                          Get_Context (J => J, Key => "SLOTSGPU")),
+                          Get_Context (J => J, Key => SGE.Context.Slots_GPU)),
                        Timestamp_Name => "LASTMIG");
    end Migrate_To_GPU;
 
