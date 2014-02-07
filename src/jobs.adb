@@ -16,10 +16,12 @@ with Parser;
 with Users;
 with Utils;
 with SGE.Quota;
+with SGE.Context;
 
 
 
 package body Jobs is
+   Chain_Count : Natural;
 
    function Comma_Convert (Encoded_String : String) return String;
    procedure Balance_CPU_GPU (J : Job);
@@ -57,11 +59,13 @@ package body Jobs is
       SGE.Jobs.Update_Quota;
       SGE.Jobs.Iterate (Parser.Add_Pending_Since'Access);
       SGE.Jobs.Iterate (Users.Add_Job'Access);
+      Chain_Count := 0;
       SGE.Jobs.Iterate (Add_Chain_Head'Access);
       Utils.Verbose_Message (SGE.Jobs.Count (Not_On_Hold'Access)'Img
                              & " by" & Users.Total_Users'Img
                              & " users eligible for re-queueing");
-      Utils.Verbose_Message (Chain_Heads.Length'Img & " chain heads found");
+      Utils.Verbose_Message (Chain_Count'Img & " chain heads found ("
+                             & Chain_Heads.Length'Img & " with extension support)");
    end Init;
 
    procedure Add_Chain_Head (J : Job) is
@@ -88,6 +92,10 @@ package body Jobs is
       if Any_Held then
          return;
       end if;
+      Chain_Count := Chain_Count + 1;
+      if not Supports_Balancer (J, High_Cores) then
+         return;
+      end if;
       Chain_Heads.Append (J);
       Utils.Trace ("Found chain head " & Get_ID (J));
    end Add_Chain_Head;
@@ -104,7 +112,7 @@ package body Jobs is
          return;
       end if;
       if Quota_Inhibited (J) then
-         Statistics.Quota_Inhibited;
+         Statistics.Quota_Inhibited (Positive'(Get_ID (J)));
          return;
       end if;
       Utils.Trace ("Looking at " & To_String (Get_Owner (J))
@@ -120,17 +128,17 @@ package body Jobs is
          declare
             Threshold     : constant Duration := Duration'Value (
                             Get_Context (J   => J,
-                                         Key => "WAITREDUCE"));
+                                         Key => SGE.Context.Wait_Reduce));
             Slot_Range    : constant String := Comma_Convert (
                             Get_Context (J   => J,
-                                         Key => "SLOTSREDUCE"));
+                                         Key => SGE.Context.Slots_Reduce));
             Pending_Since : constant Time := To_Ada_Time (Interfaces.C.long'Value (
                             Get_Context (J   => J,
-                                         Key => "PENDINGSINCE")));
+                                         Key => SGE.Context.Pending_Since)));
             Runtime       : constant String := Get_Context (J   => J,
-                                                            Key => "RTREDUCE");
+                                                            Key => SGE.Context.Reduced_Runtime);
          begin
-            if Has_Context (J, "LASTRED") then
+            if Has_Context (J, SGE.Context.Last_Reduction) then
                declare
                   Last_Reduction : constant Time := Get_Last_Reduction (J);
                   -- will not raise an exception since Has_Context ("LASTRED") is true
@@ -177,7 +185,7 @@ package body Jobs is
 
    begin
       if Quota_Inhibited (J) then
-         Statistics.Quota_Inhibited;
+         Statistics.Quota_Inhibited (Get_ID (J));
          return;
       end if;
       Utils.Trace ("Looking at " & User & "'s job " & Get_ID (J));
@@ -190,9 +198,9 @@ package body Jobs is
          declare
             Slot_Range : constant String := Comma_Convert (
                             Get_Context (J   => J,
-                                         Key => "SLOTSEXTEND"));
+                                         Key => SGE.Context.Slots_Extend));
          begin
-            if Has_Context (J, "LASTEXT") then
+            if Has_Context (J, SGE.Context.Last_Extension) then
                Utils.Trace ("already extended");
                return;
             end if;
@@ -222,18 +230,31 @@ package body Jobs is
    end Extend_Slots_Above;
 
    procedure Balance_CPU_GPU (J : Job) is
+      use Ada.Calendar;
+      use Ada.Calendar.Conversions;
+
+      Pending_Since : constant Time := To_Ada_Time (Interfaces.C.long'Value (
+                Get_Context (J   => J,
+                             Key => SGE.Context.Pending_Since)));
+      Threshold     : constant Duration := Duration (1_200); -- seconds
+
    begin
       if On_Hold (J) then
          return;
       end if;
       if Quota_Inhibited (J) then
-         Statistics.Quota_Inhibited;
+         Statistics.Quota_Inhibited (Get_ID (J));
          return;
       end if;
       Utils.Trace ("Looking at " & To_String (Get_Owner (J))
                    & "'s job " & Get_ID (J));
       if not Supports_Balancer (J, CPU_GPU) then
          Utils.Trace ("CPU_GPU not supported");
+         return;
+      end if;
+
+      if Clock < Pending_Since + Threshold then
+         Utils.Trace ("too recent");
          return;
       end if;
 
@@ -304,7 +325,7 @@ package body Jobs is
       Parser.Alter_Job (Job                => J,
                         Insecure_Resources => Resources.To_Requirement (New_Resources),
                         Slots              => Comma_Convert (
-                          Get_Context (J => J, Key => "SLOTSCPU")),
+                          Get_Context (J => J, Key => SGE.Context.Slots_CPU)),
                        Timestamp_Name => "LASTMIG");
    end Migrate_To_CPU;
 
@@ -315,7 +336,7 @@ package body Jobs is
       Parser.Alter_Job (Job                => J,
                         Insecure_Resources => Resources.To_Requirement (New_Resources),
                         Slots               => Comma_Convert (
-                          Get_Context (J => J, Key => "SLOTSGPU")),
+                          Get_Context (J => J, Key => SGE.Context.Slots_GPU)),
                        Timestamp_Name => "LASTMIG");
    end Migrate_To_GPU;
 
@@ -355,7 +376,7 @@ package body Jobs is
 
    function Equal_Jobs (Left, Right : Job) return Boolean is
    begin
-      return Get_ID (Left) = Get_ID (Right);
+      return Positive'(Get_ID (Left)) = Get_ID (Right);
    end Equal_Jobs;
 
 end Jobs;

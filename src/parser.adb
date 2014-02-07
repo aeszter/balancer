@@ -7,6 +7,7 @@ with SGE.Spread_Sheets;
 with SGE.Jobs; use SGE.Jobs;
 with Jobs;
 with Utils;
+with SGE.Context;
 
 package body Parser is
 
@@ -25,7 +26,7 @@ package body Parser is
       Slots              : String := "";
       Timestamp_Name     : String)
    is
-      Requirements : Unbounded_String := To_Unbounded_String (Get_ID (Job));
+      Requirements : Unbounded_String := To_Unbounded_String (String'(Get_ID (Job)));
       Output       : SGE.Spread_Sheets.Spread_Sheet;
       Timestamp    : constant String := " -ac " & Timestamp_Name & "=" & Utils.Now;
       Exit_Status  : Natural;
@@ -101,7 +102,7 @@ package body Parser is
       if On_Hold (J) then
          return;
       end if;
-      if Get_Context (J, "PENDINGSINCE") = "" then
+      if Get_Context (J, SGE.Context.Pending_Since) = "" then
          if not Utils.Dry_Run ("qalter "  & Params) then
             SGE.Parser.Setup_No_XML (Command     => "qalter",
                                      Subpath     => "/bin/linux-x64/",

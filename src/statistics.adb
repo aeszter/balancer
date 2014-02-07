@@ -9,6 +9,7 @@ package body Statistics is
    -----------
 
    procedure Print is
+      use Ada.Containers;
       procedure Put (Item : String) renames Ada.Text_IO.Put_Line;
 
    begin
@@ -25,8 +26,8 @@ package body Statistics is
               & Global_Stats.No_GPU_Slots'Img & " to GPU) "
                 & "because there are no free slots");
       end if;
-      if Global_Stats.Quota > 0 then
-         Put (Global_Stats.Quota'Img
+      if Global_Stats.Quota.Length > 0 then
+         Put (Global_Stats.Quota.Length'Img
                & " jobs not migrated because of a quota limit");
       end if;
       if Global_Stats.Range_Reduction > 0 then
@@ -70,9 +71,9 @@ package body Statistics is
       Global_Stats.No_GPU_Slots := Global_Stats.No_GPU_Slots + 1;
    end No_GPU;
 
-   procedure Quota_Inhibited is
+   procedure Quota_Inhibited (ID : Positive) is
    begin
-      Global_Stats.Quota := Global_Stats.Quota + 1;
+      Global_Stats.Quota.Include (ID);
    end Quota_Inhibited;
 
    -----------------
