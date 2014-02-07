@@ -230,6 +230,14 @@ package body Jobs is
    end Extend_Slots_Above;
 
    procedure Balance_CPU_GPU (J : Job) is
+      use Ada.Calendar;
+      use Ada.Calendar.Conversions;
+
+      Pending_Since : constant Time := To_Ada_Time (Interfaces.C.long'Value (
+                Get_Context (J   => J,
+                             Key => SGE.Context.Pending_Since)));
+      Threshold     : constant Duration := Duration (1_200); -- seconds
+
    begin
       if On_Hold (J) then
          return;
@@ -242,6 +250,11 @@ package body Jobs is
                    & "'s job " & Get_ID (J));
       if not Supports_Balancer (J, CPU_GPU) then
          Utils.Trace ("CPU_GPU not supported");
+         return;
+      end if;
+
+      if Clock < Pending_Since + Threshold then
+         Utils.Trace ("too recent");
          return;
       end if;
 
