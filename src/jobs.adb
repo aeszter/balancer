@@ -260,6 +260,7 @@ package body Jobs is
 
       if Clock < Pending_Since + Threshold then
          Utils.Trace ("too recent");
+         Statistics.Recent_Job;
          return;
       end if;
 

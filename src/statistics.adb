@@ -30,6 +30,10 @@ package body Statistics is
          Put (Global_Stats.Quota.Length'Img
                & " jobs not migrated because of a quota limit");
       end if;
+      if Global_Stats.Recent > 0 then
+         Put (Global_Stats.Recent'Img
+               & " jobs too recent to be migrated");
+      end if;
       if Global_Stats.Range_Reduction > 0 then
          Put (Global_Stats.Range_Reduction'Img
                & " jobs changed to lower slot numbers");
@@ -84,6 +88,11 @@ package body Statistics is
    begin
       Global_Stats.Aimless := Global_Stats.Aimless + 1;
    end Aimless_Job;
+
+   procedure Recent_Job is
+   begin
+      Global_Stats.Recent := Global_Stats.Recent + 1;
+   end Recent_Job;
 
    procedure Extend_Range is
    begin
