@@ -3,6 +3,13 @@ with Ada.Text_IO;
 package body Statistics is
 
    function No_Slots return Natural;
+   procedure Increment (What : in out Natural);
+
+
+   procedure Increment (What : in out Natural) is
+   begin
+      What := What + 1;
+   end Increment;
 
    -----------
    -- Print --
@@ -53,12 +60,12 @@ package body Statistics is
 
    procedure To_CPU is
    begin
-      Global_Stats.To_CPU := Global_Stats.To_CPU + 1;
+      Increment (Global_Stats.To_CPU);
    end To_CPU;
 
    procedure No_CPU is
    begin
-      Global_Stats.No_CPU_Slots := Global_Stats.No_CPU_Slots + 1;
+      Increment (Global_Stats.No_CPU_Slots);
    end No_CPU;
 
    ------------
@@ -67,12 +74,12 @@ package body Statistics is
 
    procedure To_GPU is
    begin
-      Global_Stats.To_GPU := Global_Stats.To_GPU + 1;
+      Increment (Global_Stats.To_GPU);
    end To_GPU;
 
    procedure No_GPU is
    begin
-      Global_Stats.No_GPU_Slots := Global_Stats.No_GPU_Slots + 1;
+      Increment (Global_Stats.No_GPU_Slots);
    end No_GPU;
 
    procedure Quota_Inhibited (ID : Positive) is
@@ -86,22 +93,22 @@ package body Statistics is
 
    procedure Aimless_Job is
    begin
-      Global_Stats.Aimless := Global_Stats.Aimless + 1;
+      Increment (Global_Stats.Aimless);
    end Aimless_Job;
 
    procedure Recent_Job is
    begin
-      Global_Stats.Recent := Global_Stats.Recent + 1;
+      Increment (Global_Stats.Recent);
    end Recent_Job;
 
    procedure Extend_Range is
    begin
-      Global_Stats.Range_Extension := Global_Stats.Range_Extension + 1;
+      Increment (Global_Stats.Range_Extension);
    end Extend_Range;
 
    procedure Reduce_Range is
    begin
-      Global_Stats.Range_Reduction := Global_Stats.Range_Reduction + 1;
+      Increment (Global_Stats.Range_Reduction);
    end Reduce_Range;
 
    function No_Slots return Natural is
