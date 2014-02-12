@@ -233,9 +233,7 @@ package body Jobs is
       use Ada.Calendar;
       use Ada.Calendar.Conversions;
 
-      Pending_Since : constant Time := To_Ada_Time (Interfaces.C.long'Value (
-                Get_Context (J   => J,
-                             Key => SGE.Context.Pending_Since)));
+      Pending_Since : Time;
       Threshold     : constant Duration := Duration (1_200); -- seconds
 
    begin
@@ -252,9 +250,17 @@ package body Jobs is
          Utils.Trace ("CPU_GPU not supported");
          return;
       end if;
+      if Has_Context (J, SGE.Context.Pending_Since) then
+         Pending_Since := To_Ada_Time (Interfaces.C.long'Value (
+                          Get_Context (J   => J,
+                                       Key => SGE.Context.Pending_Since)));
+      else
+         Pending_Since := Clock;
+      end if;
 
       if Clock < Pending_Since + Threshold then
          Utils.Trace ("too recent");
+         Statistics.Recent_Job;
          return;
       end if;
 

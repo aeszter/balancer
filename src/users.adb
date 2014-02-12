@@ -1,3 +1,6 @@
+with Ada.Text_IO;
+with Ada.Exceptions; use Ada.Exceptions;
+
 package body Users is
 
    -------------
@@ -44,8 +47,20 @@ package body Users is
       procedure Wrapper (Position : Job_Lists.Cursor);
 
       procedure Wrapper (Position : Job_Lists.Cursor) is
+         use Ada.Text_IO;
       begin
          Process (Job_Lists.Element (Position));
+      exception
+         when E : others =>
+         -- if we're here, something really bad happened:
+         -- Process should have caught any exception that might have been raised
+         -- deep inside, so proceed with utmost caution: print a static text first
+         -- then something from a simple, local type
+         -- proceed to SGElib types last
+         Put_Line ("Wrapper caught error while iterating over users");
+         Put_Line (Exception_Information (E));
+         Put_Line (String (Job_Lists.Key (Position).User));
+         Put_Line (SGE.Jobs.Get_ID (Job_Lists.Element (Position)));
       end Wrapper;
 
    begin
