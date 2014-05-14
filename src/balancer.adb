@@ -23,7 +23,9 @@ begin
 
    Jobs.Balance;
    Statistics.Print;
-   Diagnostics.Print;
+   if not Statistics.Is_Pristine then
+      Diagnostics.Print;
+   end if;
 exception
    when E : others =>
       Put_Line (File => Standard_Error,

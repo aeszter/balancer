@@ -9,7 +9,13 @@ package body Statistics is
    procedure Increment (What : in out Natural) is
    begin
       What := What + 1;
+      Pristine := False;
    end Increment;
+
+   function Is_Pristine return Boolean is
+   begin
+      return Pristine;
+   end Is_Pristine;
 
    -----------
    -- Print --
@@ -20,6 +26,9 @@ package body Statistics is
       procedure Put (Item : String) renames Ada.Text_IO.Put_Line;
 
    begin
+      if Pristine then
+         return;
+      end if;
       Put ("Statistics:");
       if Global_Stats.To_CPU > 0 then
          Put (Global_Stats.To_CPU'Img & " jobs migrated to CPU-only queues");
@@ -85,6 +94,7 @@ package body Statistics is
    procedure Quota_Inhibited (ID : Positive) is
    begin
       Global_Stats.Quota.Include (ID);
+      Pristine := False;
    end Quota_Inhibited;
 
    -----------------

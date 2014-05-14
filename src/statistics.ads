@@ -3,6 +3,7 @@ with Ada.Containers.Ordered_Sets;
 package Statistics is
 
    procedure Print;
+   function Is_Pristine return Boolean;
 
    procedure To_CPU;
    procedure To_GPU;
@@ -28,4 +29,5 @@ private
    end record;
 
    Global_Stats : Data;
+   Pristine : Boolean := True;
 end Statistics;
