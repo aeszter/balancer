@@ -25,6 +25,7 @@ begin
    Statistics.Print;
    if not Statistics.Is_Pristine then
       Diagnostics.Print;
+      Ada.Text_IO.Put_Line (Utils.Version);
    end if;
 exception
    when E : others =>
