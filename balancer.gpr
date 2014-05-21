@@ -45,7 +45,31 @@ project Balancer is
    end Builder;
 
    package Compiler is
-      for Default_Switches ("ada") use ("-gnaty3aBcCehiklnOrsStx", "-gnatwa", "-O", "-gnato", "-g");
+
+      case Library_Type is
+
+         when "static" =>
+
+            case Platform is
+
+               when "native" =>
+
+                  case Ssl_Library_Type is
+
+                     when "relocatable" =>
+                        for Default_Switches ("ada") use ("-gnatVa", "-gnaty3aBcCehiklnOrsStxo", "-gnatwa.o", "-O", "-gnato", "-g", "-gnat05");
+
+                     when "static" =>
+                        for Default_Switches ("ada") use ("-gnaty3aBcCehiklnOrsStx", "-gnatwa", "-O", "-gnato", "-g");
+                  end case;
+
+               when "vxworks" =>
+                  for Default_Switches ("ada") use ("-gnaty3aBcCehiklnOrsStx", "-gnatwa", "-O", "-gnato", "-g");
+            end case;
+
+         when "relocatable" =>
+            for Default_Switches ("ada") use ("-gnaty3aBcCehiklnOrsStx", "-gnatwa", "-O", "-gnato", "-g");
+      end case;
    end Compiler;
 
 end Balancer;
