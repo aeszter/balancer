@@ -1,7 +1,8 @@
 with Ada.Numerics.Float_Random;
+with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 
 package Utils is
-   Version : String := "develop"; 
+   Version : String := "develop";
 
    Assumption_Error : exception;
 
@@ -17,12 +18,19 @@ package Utils is
 
    function Stats_Enabled return Boolean;
 
+   function On_Automatic return Boolean;
+   function On_Manual return Boolean;
+
+   function Get_Job return Natural;
+   function Get_Destination return String;
+
    function Random return Ada.Numerics.Float_Random.Uniformly_Distributed;
    procedure Init_Random;
    function Now return String;
 
    procedure Check_Options;
 
+   type Operation_Mode is (automatic, manual);
 
 private
    Action           : Boolean := True;
@@ -31,4 +39,6 @@ private
    Stats            : Boolean := False;
    Trace_Policy     : Boolean := False;
    Random_Generator : Ada.Numerics.Float_Random.Generator;
+   Mode             : Operation_Mode := automatic;
+   Manual_Job, Manual_Destination : Unbounded_String;
 end Utils;
