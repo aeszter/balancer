@@ -18,6 +18,7 @@ package body Diagnostics is
    begin
       Put_Time;
       Put_Memory;
+      Put_Line ("");
    end Print;
 
 
