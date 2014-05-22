@@ -385,4 +385,17 @@ package body Jobs is
       return Positive'(Get_ID (Left)) = Get_ID (Right);
    end Equal_Jobs;
 
+   procedure Shift (J : Natural; To : String) is
+   begin
+      if To = "gpu" then
+         Migrate_To_GPU (Find_Job (J));
+         Statistics.To_GPU;
+      elsif  To="cpu" then
+         Migrate_To_CPU (Find_Job (J));
+         Statistics.To_CPU;
+      else
+         raise Constraint_Error with "unknown destination """ & To & """";
+      end if;
+   end Shift;
+
 end Jobs;

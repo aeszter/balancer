@@ -4,6 +4,7 @@ with POSIX.Process_Primitives;
 with Ada.Numerics; use Ada.Numerics;
 with GNAT.Calendar.Time_IO; use GNAT.Calendar.Time_IO;
 with Ada.Calendar;
+with Ada.Characters.Handling;
 
 
 package body Utils is
@@ -95,6 +96,13 @@ package body Utils is
          elsif Argument (Arg) = "-p" or else
            Argument (Arg) = "--policy" then
             Trace_Policy := True;
+         elsif Argument (Arg) = "-m" or else
+           Argument (Arg) = "--manual" then
+            Mode := manual;
+            Manual_Job := To_Unbounded_String (Argument (Arg + 1));
+            Manual_Destination := To_Unbounded_String (
+                       Ada.Characters.Handling.To_Lower (Argument (Arg + 2)));
+            return;
          elsif Argument (Arg) = "-h" or else
            Argument (Arg) = "--help" then
             Ada.Text_IO.Put_Line ("Options may be given in full or with a single hyphen "
@@ -105,6 +113,9 @@ package body Utils is
                                   & "without actually calling qmod or cmsh; "
                                   & " implies --verbose");
             Ada.Text_IO.Put_Line ("--statistics shows a summary of what has been done");
+            Ada.Text_IO.Put_Line ("--policy prints details about decisions taken");
+            Ada.Text_IO.Put_Line ("--manual ID (cpu|gpu) unconditionally puts the given job "
+                                 & "into the cpu or gpu queue");
             Ada.Text_IO.Put_Line ("--help shows this message, then terminates");
             POSIX.Process_Primitives.Exit_Process;
          else
@@ -112,6 +123,26 @@ package body Utils is
          end if;
       end loop;
    end Check_Options;
+
+   function On_Automatic return Boolean is
+   begin
+      return Mode = automatic;
+   end On_Automatic;
+
+   function On_Manual return Boolean is
+   begin
+      return Mode = manual;
+   end On_Manual;
+
+   function Get_Job return Natural is
+   begin
+      return Integer'Value (To_String (Manual_Job));
+   end Get_Job;
+
+   function Get_Destination return String is
+   begin
+      return To_String (Manual_Destination);
+   end Get_Destination;
 
    function Stats_Enabled return Boolean is
    begin

@@ -2,6 +2,7 @@ with SGE.Parser; use SGE.Parser;
 with SGE.Queues;
 with Parser;
 with Utils;
+with SGE.Resources;
 
 package body Partitions is
    use Partitions.Catalogs;
@@ -116,12 +117,16 @@ package body Partitions is
       Minimum_Slots : Positive;
 
       function Selector (Card : Index_Card) return Boolean is
+         use type SGE.Resources.Network;
       begin
          if Card.Free_Slots >= Minimum_Slots then
             Utils.Trace ("Found a node with" & Card.Free_Slots'Img
                          & ">=" & Minimum_Slots'Img
                          & " free slots in "
                          & SGE.Host_Properties.To_String (Card.Partition));
+            return True;
+         elsif SGE.Host_Properties.Get_Network (Card.Partition) /= SGE.Resources.none and then
+           Integer (Card.Free_Hosts) * Card.Free_Slots >= Minimum_Slots then
             return True;
          else
             return False;
