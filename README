@@ -1,0 +1,75 @@
+balancer
+========
+
+Use qalter to optimize cluster utility
+
+By Ansgar Esztermann <aeszter@mpibpc.mpg.de>
+
+1. Goal
+The Balancer is is a program that run on top of Grid Engine and strives to
+optimise cluster utilisation[1]. Some flexibility is already built into GE 
+(e.g. slot ranges allow a job to run with 48 cores if possible, but make 
+do with 32 slots rather than getting none at all). However, this flexibility 
+is limited, so an external tool is useful. 
+The Balancer comprises three modules:
+
+  * job scripts include additional information (similar to requests
+    for PEs or resources, but invisible to the scheduler)
+  * depending on the current cluster load and this information,
+    the balancer alters queued jobs
+  * the Grid Engine scheduler schedules altered jobs according to
+    their new settings 
+
+2. Implementation
+Currently, the Balancer performs three operations:
+
+  * migrate GPU jobs to CPU queues (and vice versa)
+  * extend slot ranges to lower values for jobs that would take a long 
+    time to start with their original settings
+  * extend slot ranges to higher values if there are many free nodes 
+    in the cluster 
+
+3. Requirements
+The following libraries are needed:
+
+  * Florist (POSIX API)
+  * SGElib (Grid Engine frontend, also on github by the author of
+    Balancer)
+  
+  The latter needs:
+  * ADAcgi
+  * XMLAda
+
+Of course, a working Grid Engine installation is also necessary.
+
+4. Usage
+The balancer does not run as a daemon.[2] Instead, call it from cron
+every half hour or so.
+Commandline options may be given in full or with a single hyphen and the first
+letter only:
+--debug gives debugging output
+--verbose states which actions are taken
+--no-action only goes through the motions without actually calling
+  qmod;  implies --verbose
+--statistics shows a summary of what has been done
+--policy prints details about decisions taken
+--manual ID (cpu|gpu) unconditionally puts the given job into the cpu
+  or gpu queue
+--help shows this message, then terminates
+
+
+Notes:
+[1] Utilisation may be defined as the sum of the performance of all 
+    running jobs. Typically, a job's performance increases with
+    available resources (e.g. CPU cores), but not linearly. Moreover,
+    performance will degrade again for very large CPU numbers.
+    The optimum strategy will then depend on the workload: when enough
+    jobs are queued, it is preferable to have many jobs running in
+    parallel, each with a moderate number of CPUs. Running only a few
+    jobs at a time, but with a massive amount of cores each, reduces
+    overall performance.
+    If the queue is empty, liberally distributing cores may be still
+    better than leaving them idle.
+[2] This is on purpose: a one-shot process that starts each run from a known
+    state is more robust and easier to debug than a daemon that may
+    enter a weird and hard-to-reproduce state after a few days.
