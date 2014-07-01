@@ -14,8 +14,8 @@ package body Partitions is
       Card : Index_Card;
 
    begin
-      Card.Partition := P.Properties;
-      Card.Free_Hosts := P.Available_Hosts.Length;
+      Card.Partition := P.Get_Properties;
+      Card.Free_Hosts := P.Get_Available_Hosts;
       Card.Free_Slots := Free_Slots;
       return Card;
    end New_Card;
@@ -70,15 +70,14 @@ package body Partitions is
          end Copy_Sub_Partition;
 
       begin
-         if P.Available_Slots.Is_Empty then
-            return;
+         if P.Get_Available_Slots /= 0 then
+            P.Iterate_Available_Slots (Copy_Sub_Partition'Access);
          end if;
-         P.Available_Slots.Iterate (Copy_Sub_Partition'Access);
       end Copy;
 
       procedure Count (Position : Catalogs.Cursor) is
       begin
-         Total := Total + Natural (Key (Position).Free_Hosts);
+         Total := Total + Key (Position).Free_Hosts;
       end Count;
 
       procedure Increment (Card : Index_Card; Count : in out Natural) is

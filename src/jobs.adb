@@ -390,7 +390,7 @@ package body Jobs is
       if To = "gpu" then
          Migrate_To_GPU (Find_Job (J));
          Statistics.To_GPU;
-      elsif  To="cpu" then
+      elsif To = "cpu" then
          Migrate_To_CPU (Find_Job (J));
          Statistics.To_CPU;
       else

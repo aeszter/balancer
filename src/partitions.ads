@@ -24,7 +24,7 @@ package Partitions is
 
    type Index_Card is record
       Partition  : SGE.Host_Properties.Set_Of_Properties;
-      Free_Hosts : Ada.Containers.Count_Type;
+      Free_Hosts : Natural;
       Free_Slots : Natural;
    end record;
 
