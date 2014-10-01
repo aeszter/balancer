@@ -11,6 +11,43 @@ with SGE.Context;
 
 package body Parser is
 
+   procedure Add_Pending_Since (J : Job) is
+      Output : SGE.Spread_Sheets.Spread_Sheet;
+      Params : constant String := Get_ID (J) & " -ac PENDINGSINCE=" & Utils.Now;
+      Exit_Status : Natural;
+      pragma Unreferenced (Output);
+      -- Can we do something useful with the output?
+   begin
+      if On_Hold (J) then
+         return;
+      end if;
+      if Get_Context (J, SGE.Context.Pending_Since) = "" then
+         if not Utils.Dry_Run ("qalter "  & Params) then
+            SGE.Parser.Setup_No_XML (Command     => "qalter",
+                                     Subpath     => "/bin/linux-x64/",
+                                     Selector    => Params,
+                                     Output      => Output,
+                                     Exit_Status => Exit_Status);
+            case Exit_Status is
+               when 0 => null; -- OK
+               when 1 => Utils.Verbose_Message ("Exit Status 1, evaluate output (Bug #1849)");
+               when others =>
+                  Utils.Error_Message ("qalter exited with status" & Exit_Status'Img
+                                       & ". This is a bug in the balancer because it is "
+                                       & "unhandled in Parser.Add_Pending_Since.");
+            end case;
+
+         end if;
+      end if;
+   exception
+      when E : SGE.Parser.Parser_Error =>
+         Ada.Text_IO.Put_Line ("Could not timestamp job " & Get_ID (J));
+         Utils.Verbose_Message (Exception_Message (E));
+      when E : others =>
+         Ada.Text_IO.Put_Line ("Unknown error in Parser.Add_Pending_Since (" & Get_ID (J) & "): ");
+         Ada.Text_IO.Put_Line (Exception_Message (E));
+   end Add_Pending_Since;
+
    function Sanitise (Input : String) return String;
    -- Note: this function is security-critical
    -- Make sure to call this on all data read from Context and passed to
@@ -91,44 +128,6 @@ package body Parser is
          Ada.Text_IO.Put_Line ("Unknown error in Parser.Alter_Job (" & Get_ID (Job) & "): ");
          Ada.Text_IO.Put_Line (Exception_Message (E));
    end Alter_Job;
-
-   procedure Add_Pending_Since (J : Job) is
-      Output : SGE.Spread_Sheets.Spread_Sheet;
-      Params : constant String := Get_ID (J) & " -ac PENDINGSINCE=" & Utils.Now;
-      Exit_Status : Natural;
-      pragma Unreferenced (Output);
-      -- Can we do something useful with the output?
-   begin
-      if On_Hold (J) then
-         return;
-      end if;
-      if Get_Context (J, SGE.Context.Pending_Since) = "" then
-         if not Utils.Dry_Run ("qalter "  & Params) then
-            SGE.Parser.Setup_No_XML (Command     => "qalter",
-                                     Subpath     => "/bin/linux-x64/",
-                                     Selector    => Params,
-                                     Output      => Output,
-                                     Exit_Status => Exit_Status);
-            case Exit_Status is
-               when 0 => null; -- OK
-               when 1 => Utils.Verbose_Message ("Exit Status 1, evaluate output (Bug #1849)");
-               when others =>
-                  Utils.Error_Message ("qalter exited with status" & Exit_Status'Img
-                                       & ". This is a bug in the balancer because it is "
-                                       & "unhandled in Parser.Add_Pending_Since.");
-            end case;
-
-         end if;
-      end if;
-   exception
-      when E : SGE.Parser.Parser_Error =>
-         Ada.Text_IO.Put_Line ("Could not timestamp job " & Get_ID (J));
-         Utils.Verbose_Message (Exception_Message (E));
-      when E : others =>
-         Ada.Text_IO.Put_Line ("Unknown error in Parser.Add_Pending_Since (" & Get_ID (J) & "): ");
-         Ada.Text_IO.Put_Line (Exception_Message (E));
-   end Add_Pending_Since;
-
 
    function Sanitise (Input : String) return String is
       function Is_Harmless_Dash (Char : in Character; Where : Positive) return Boolean;

@@ -3,17 +3,19 @@ with Ada.Exceptions; use Ada.Exceptions;
 
 package body Users is
 
-   -------------
-   -- Add_Job --
-   -------------
-
    procedure Increment (Key : User_Name; Element : in out Positive);
 
-   procedure Increment (Key : User_Name; Element : in out Positive) is
-      pragma Unreferenced (Key);
+
+   function "<" (Left, Right : Index_Card) return Boolean is
    begin
-      Element := Element + 1;
-   end Increment;
+      if Left.Counter < Right.Counter then
+         return True;
+      elsif Left.Counter > Right.Counter then
+         return False;
+      else
+         return Left.User < Right.User;
+      end if;
+   end "<";
 
    procedure Add_Job (J : SGE.Jobs.Job) is
       Key : Index_Card;
@@ -36,6 +38,17 @@ package body Users is
       List.Insert (Key      => Key,
                    New_Item => J);
    end Add_Job;
+
+   function Count_Jobs (For_User : String) return Natural is
+   begin
+      return Count.Element (Key => To_User_Name (For_User));
+   end Count_Jobs;
+
+   procedure Increment (Key : User_Name; Element : in out Positive) is
+      pragma Unreferenced (Key);
+   begin
+      Element := Element + 1;
+   end Increment;
 
    -------------
    -- Iterate --
@@ -71,26 +84,9 @@ package body Users is
    -- "<" --
    ---------
 
-   function "<" (Left, Right : Index_Card) return Boolean is
-   begin
-      if Left.Counter < Right.Counter then
-         return True;
-      elsif Left.Counter > Right.Counter then
-         return False;
-      else
-         return Left.User < Right.User;
-      end if;
-   end "<";
-
-
    function Total_Users return Natural is
    begin
       return Natural (Count.Length);
    end Total_Users;
-
-   function Count_Jobs (For_User : String) return Natural is
-   begin
-      return Count.Element (Key => To_User_Name (For_User));
-   end Count_Jobs;
 
 end Users;

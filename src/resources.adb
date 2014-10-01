@@ -5,6 +5,15 @@ with SGE.Resources; use SGE.Resources; use SGE.Resources.Resource_Lists;
 
 package body Resources is
 
+   procedure Add
+     (To   : in out SGE.Resources.Hashed_List;
+      Name, Value : String)
+   is
+   begin
+      To.Insert (Key      => To_Unbounded_String (Name),
+                 New_Item => New_Resource (Name, Value));
+   end Add;
+
    --------------------
    -- To_Requirement --
    --------------------
@@ -40,14 +49,5 @@ package body Resources is
    ---------
    -- Add --
    ---------
-
-   procedure Add
-     (To   : in out SGE.Resources.Hashed_List;
-      Name, Value : String)
-   is
-   begin
-      To.Insert (Key      => To_Unbounded_String (Name),
-                 New_Item => New_Resource (Name, Value));
-   end Add;
 
 end Resources;
