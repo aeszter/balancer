@@ -2,7 +2,7 @@ with Ada.Numerics.Float_Random;
 with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 
 package Utils is
-   Version : String := "develop";
+   Version : String := "feature:rules";
 
    Assumption_Error : exception;
 
