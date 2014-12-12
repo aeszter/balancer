@@ -1,0 +1,96 @@
+COMPILER Rules
+
+CHARACTERS
+   letter = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_".
+   digit = "0123456789".
+   tab = CHR(9).
+   eol = CHR(13).
+   lf = CHR(10).
+   ctrl = CHR(1) .. CHR(31).
+   noQuote = ANY - '"' - ctrl.
+
+TOKENS
+   ident = letter {letter | digit}.
+   number = digit {digit}.
+   string = '"' { noQuote } '"'.
+
+COMMENTS FROM '#' TO lf
+
+IGNORE eol + lf + tab
+
+PRODUCTIONS
+   Rules
+   = Rule
+     ';'
+     { Rule ';' }.
+
+   Rule
+   = Transition
+     ( BranchChain | ActionList)
+     ';'.
+
+   Transition
+   = WC_State
+     "->"
+     WC_State.
+
+   WC_State
+   = State | '*'.
+
+   BranchChain
+   = "if"
+     CondList
+     "then"
+     ActionList
+     { "elsif"
+     CondList
+     "then"
+     ActionList }.
+
+   ActionList
+   = Action
+     { "and" Action }.
+
+   CondList
+   = Condition
+     { "and" Condition }.
+
+   State
+   = "cpu" | "gpu".
+
+   Condition
+   = Property
+     RelOp
+     Literal.
+
+   Action
+   = ( "add" | "remove" )
+     Literal
+     ( "to" | "from" )
+     Property
+   | "set"
+     Property
+     "to"
+     Literal.
+
+   Literal
+   = string | NumSet | Boolean.
+
+   RelOp
+   = "=" | "~" | "^" | "<" | ">".
+
+   Property
+   = "PE" | "slots" | "resources" | "reservation".
+
+   Boolean
+   = "on" | "off" | "true" | "false".
+
+   NumSet
+   = NumRange
+     { "," NumRange }.
+
+   NumRange
+   = number
+     [ "-" number ].
+
+END Rules.

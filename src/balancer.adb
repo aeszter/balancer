@@ -7,6 +7,7 @@ with Jobs;
 with Partitions;
 with Statistics;
 with SGE.Utils;
+with Sanitiser;
 
 
 procedure Balancer is
@@ -18,6 +19,7 @@ begin
    Utils.Verbose_Message ("SGElib " & SGE.Utils.Version);
    Debug ("Debugging enabled");
 
+   Sanitiser.Init;
    Jobs.Init;
 
    if Utils.On_Automatic then
