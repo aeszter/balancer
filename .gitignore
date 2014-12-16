@@ -1,2 +1,8 @@
 .gdb_history
 obj
+ruless.adb
+ruless.ads
+rulesp.adb
+rulesp.ads
+rules.err
+rules.lst
