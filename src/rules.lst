@@ -13,11 +13,11 @@ LL(1) conditions:         --  Ok  --
 
 Statistics:
 
-  nr of terminals:        34 (limit   400)
+  nr of terminals:        35 (limit   400)
   nr of non-terminals:    16 (limit   210)
-  nr of pragmas:           0 (limit   466)
-  nr of symbolnodes:      50 (limit   500)
-  nr of graphnodes:      100 (limit  1500)
+  nr of pragmas:           0 (limit   465)
+  nr of symbolnodes:      51 (limit   500)
+  nr of graphnodes:      102 (limit  1500)
   nr of conditionsets:     1 (limit   100)
   nr of charactersets:     8 (limit   250)
 

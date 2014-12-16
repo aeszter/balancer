@@ -25,7 +25,8 @@ PRODUCTIONS
      { Rule ';' }.
 
    Rule
-   = Transition
+   = ident
+     ':' Transition
      ( BranchChain | ActionList)
      ';'.
 
