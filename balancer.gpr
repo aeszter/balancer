@@ -30,6 +30,7 @@ project Balancer is
 
                   when "static" =>
                      for Source_Dirs use ("src");
+                     for Languages use ("Ada", "Annotated Grammar");
                end case;
 
             when "vxworks" =>
@@ -48,6 +49,10 @@ project Balancer is
 
       case Library_Type is
 
+         when "relocatable" =>
+            for Default_Switches ("ada") use ("-gnaty3aBcCehiklnOrsStx", "-gnatwa", "-O", "-gnato", "-g");
+            for Driver ("annotated grammar") use "/home/aeszter/src/ada/cocor/cr";
+
          when "static" =>
 
             case Platform is
@@ -58,19 +63,23 @@ project Balancer is
 
                      when "relocatable" =>
                         for Default_Switches ("ada") use ("-gnatVa", "-gnaty3aBcCehiklnOrsStxo", "-gnatwa.o", "-O", "-gnato", "-g", "-gnat05");
+                        for Driver ("annotated grammar") use "";
 
                      when "static" =>
                         for Default_Switches ("ada") use ("-gnaty3aBcCehiklnOrsStx", "-gnatwa", "-O", "-gnato", "-g");
+                        for Driver ("annotated grammar") use "/home/aeszter/src/ada/cocor/cr";
                   end case;
 
                when "vxworks" =>
                   for Default_Switches ("ada") use ("-gnaty3aBcCehiklnOrsStx", "-gnatwa", "-O", "-gnato", "-g");
+                  for Driver ("annotated grammar") use "/home/aeszter/src/ada/cocor/cr";
             end case;
-
-         when "relocatable" =>
-            for Default_Switches ("ada") use ("-gnaty3aBcCehiklnOrsStx", "-gnatwa", "-O", "-gnato", "-g");
       end case;
    end Compiler;
+
+   package Naming is
+      for Body_Suffix ("annotated grammar") use ".atg";
+   end Naming;
 
 end Balancer;
 

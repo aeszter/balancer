@@ -7,7 +7,6 @@ with Ada.Calendar.Conversions;
 with Interfaces.C;
 with SGE.Jobs; use SGE.Jobs;
 with SGE.Parser;
-with SGE.Resources;
 with SGE.Utils; use SGE.Utils;
 with Partitions;
 with Resources;
@@ -27,6 +26,8 @@ package body Jobs is
    function Comma_Convert (Encoded_String : String) return String;
 --   procedure Extend_Slots_Above (Position : Job_Lists.Cursor);
 --   procedure Extend_Slots_Below (J : Job);
+   procedure Apply_Changes (Position : Changed_Lists.Cursor);
+   function Timestamp (J : Changed_Job) return String;
 
    procedure Add_Chain_Head (J : Job) is
       procedure Test_Hold (ID : Natural);
@@ -60,6 +61,17 @@ package body Jobs is
       Utils.Trace ("Found chain head " & Get_ID (J));
    end Add_Chain_Head;
 
+
+   procedure Apply_Changes (Position : Changed_Lists.Cursor) is
+      J : constant Changed_Job := Changed_Lists.Element (Position);
+   begin
+      Parser.Alter_Job (ID => J.ID,
+                        Insecure_Resources => J.Resources.To_String,
+                        Slots              => SGE.Ranges.To_String (J.Slots, True),
+                        PE                 => To_String (J.PE),
+                        Timestamp_Name => Timestamp (J));
+   end Apply_Changes;
+
    procedure Balance is
    begin
 --      Utils.Trace ("Extending slot ranges to fewer cores");
@@ -68,6 +80,8 @@ package body Jobs is
       Users.Iterate (Balance_CPU_GPU'Access);
 --      Utils.Trace ("Extending slot ranges to more cores");
 --      Chain_Heads.Iterate (Extend_Slots_Above'Access);
+      Utils.Trace ("Applying changes");
+      Modified.Iterate (Apply_Changes'Access);
    end Balance;
 
    procedure Balance_CPU_GPU (J : Job) is
@@ -155,7 +169,10 @@ package body Jobs is
       return Positive'(Get_ID (Left)) = Get_ID (Right);
    end Equal_Jobs;
 
+   function Equal_Jobs (Left, Right : Changed_Job) return Boolean is
    begin
+      return Left.ID = Right.ID;
+   end Equal_Jobs;
 
 --     procedure Extend_Slots (J : Job; To : String) is
 --        New_Resources : SGE.Resources.Hashed_List := Get_Hard_Resources (J);
@@ -291,7 +308,10 @@ package body Jobs is
 --                                 & Exception_Message (E));
 --     end Extend_Slots_Below;
 
+   function Get_ID (J : Changed_Job) return String is
    begin
+      return J.ID'Img;
+   end Get_ID;
 
    ----------
    -- Init --
@@ -333,6 +353,15 @@ package body Jobs is
                              & Chain_Heads.Length'Img & " with extension support)");
    end Init;
 
+   function Init (ID : Positive; Old_State, New_State : State) return Changed_Job is
+      J : Changed_Job;
+   begin
+      J.ID := ID;
+      J.Old_State := Old_State;
+      J.New_State := New_State;
+      return J;
+   end Init;
+
    -------------
    -- Balance --
    -------------
@@ -342,26 +371,39 @@ package body Jobs is
       return Supports_Balancer (J) and then not Has_Error (J);
    end Is_Eligible;
 
+   function Match (J : Changed_Job; Old_State, New_State : State) return Boolean is
+      function Match (S, Pattern : State) return Boolean;
+
+      function Match (S, Pattern : State) return Boolean is
+      begin
+         if Pattern = any then
+            return True;
+         end if;
+         return S = Pattern;
+      end Match;
+
+   begin
+      return Match (J.Old_State, Old_State) and then Match (J.New_State, New_State);
+   end Match;
+
    procedure Migrate_To_CPU (J : Job) is
       New_Resources : SGE.Resources.Hashed_List := Get_Hard_Resources (J);
+      Item : Changed_Job := Init (ID => Get_ID (J), New_State => cpu, Old_State => gpu);
    begin
       New_Resources.Delete (Key => To_Unbounded_String ("gpu"));
-      Parser.Alter_Job (Job                => J,
-                        Insecure_Resources => Resources.To_Requirement (New_Resources),
-                        Slots              => Comma_Convert (
-                          Get_Context (J => J, Key => SGE.Context.Slots_CPU)),
-                       Timestamp_Name => "LASTMIG");
+      Item.Resources := New_Resources;
+      Set_Slots (Item, Comma_Convert (Get_Context (J => J, Key => SGE.Context.Slots_CPU)));
+      Modified.Append (Item);
    end Migrate_To_CPU;
 
    procedure Migrate_To_GPU (J : Job) is
       New_Resources : SGE.Resources.Hashed_List := Get_Hard_Resources (J);
+      Item : Changed_Job := Init (ID => Get_ID (J), New_State => gpu, Old_State => cpu);
    begin
       Resources.Add (New_Resources, Name => "gpu", Value => "1");
-      Parser.Alter_Job (Job                => J,
-                        Insecure_Resources => Resources.To_Requirement (New_Resources),
-                        Slots               => Comma_Convert (
-                          Get_Context (J => J, Key => SGE.Context.Slots_GPU)),
-                       Timestamp_Name => "LASTMIG");
+      Item.Resources := New_Resources;
+      Set_Slots (Item, Comma_Convert (Get_Context (J => J, Key => SGE.Context.Slots_GPU)));
+      Modified.Append (Item);
    end Migrate_To_GPU;
 
    function Queued_For_CPU (J : Job) return Boolean is
@@ -406,5 +448,17 @@ package body Jobs is
          raise Constraint_Error with "unknown destination """ & To & """";
       end if;
    end Shift;
+
+   function Timestamp (J : Changed_Job) return String is
+   begin
+      case J.New_State is
+         when cpu => return "LASTMIG";
+         when gpu => return "LASTMIG";
+         when any =>
+            raise Constraint_Error with "Job" & J.ID'Img & " has illegal state ""any""";
+         when undefined =>
+         raise Constraint_Error with "Unknown state encountered in" & J.ID'Img;
+      end case;
+   end Timestamp;
 
 end Jobs;
