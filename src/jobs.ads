@@ -15,15 +15,15 @@ package Jobs is
    function Queued_For_GPU (J : Job) return Boolean;
    procedure Migrate_To_CPU (J : Job);
    procedure Migrate_To_GPU (J : Job);
-   procedure Reduce_Slots (J : Job; To : String; Runtime : String);
-   procedure Extend_Slots (J : Job; To : String);
+--   procedure Reduce_Slots (J : Job; To : String; Runtime : String);
+--   procedure Extend_Slots (J : Job; To : String);
    procedure Add_Chain_Head (J : SGE.Jobs.Job);
 
 private
    function Equal_Jobs (Left, Right : Job) return Boolean;
 
    package Job_Lists is new Ada.Containers.Doubly_Linked_Lists (Element_Type => Job,
-                                                               "=" => Equal_Jobs);
+                                                                "="          => Equal_Jobs);
 
    Chain_Heads   : Job_Lists.List;
 

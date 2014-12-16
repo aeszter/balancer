@@ -25,8 +25,8 @@ package body Jobs is
 
    procedure Balance_CPU_GPU (J : Job);
    function Comma_Convert (Encoded_String : String) return String;
-   procedure Extend_Slots_Above (Position : Job_Lists.Cursor);
-   procedure Extend_Slots_Below (J : Job);
+--   procedure Extend_Slots_Above (Position : Job_Lists.Cursor);
+--   procedure Extend_Slots_Below (J : Job);
 
    procedure Add_Chain_Head (J : Job) is
       procedure Test_Hold (ID : Natural);
@@ -62,12 +62,12 @@ package body Jobs is
 
    procedure Balance is
    begin
-      Utils.Trace ("Extending slot ranges to fewer cores");
-      Users.Iterate (Extend_Slots_Below'Access);
+--      Utils.Trace ("Extending slot ranges to fewer cores");
+--      Users.Iterate (Extend_Slots_Below'Access);
       Utils.Trace ("Shifting jobs between CPU and GPU");
       Users.Iterate (Balance_CPU_GPU'Access);
-      Utils.Trace ("Extending slot ranges to more cores");
-      Chain_Heads.Iterate (Extend_Slots_Above'Access);
+--      Utils.Trace ("Extending slot ranges to more cores");
+--      Chain_Heads.Iterate (Extend_Slots_Above'Access);
    end Balance;
 
    procedure Balance_CPU_GPU (J : Job) is
@@ -155,140 +155,143 @@ package body Jobs is
       return Positive'(Get_ID (Left)) = Get_ID (Right);
    end Equal_Jobs;
 
-   procedure Extend_Slots (J : Job; To : String) is
-      New_Resources : SGE.Resources.Hashed_List := Get_Hard_Resources (J);
    begin
-      New_Resources.Delete (Key => To_Unbounded_String ("gpu"));
-      Parser.Alter_Job (Job                => J,
-                        Insecure_Resources => Resources.To_Requirement (New_Resources),
-                        Slots              => To,
-                       Timestamp_Name => "LASTEXT");
-   end Extend_Slots;
 
-   procedure Extend_Slots_Above (Position : Job_Lists.Cursor) is
-      use Ada.Calendar;
-      use Ada.Calendar.Conversions;
-      J    : constant Job := Job_Lists.Element (Position);
-      User : constant String := To_String (Get_Owner (J));
+--     procedure Extend_Slots (J : Job; To : String) is
+--        New_Resources : SGE.Resources.Hashed_List := Get_Hard_Resources (J);
+--        Item : Changed_Job := (ID => Get_ID (J), New_State => extend, Slots => To, Timestamp => "LASTEXT");
+--     begin
+--        New_Resources.Delete (Key => To_Unbounded_String ("gpu"));
+--        Item.Resources := Resources.To_Requirement (New_Resources);
+--        Modified.Append (Item);
+--     end Extend_Slots;
+
+--     procedure Extend_Slots_Above (Position : Job_Lists.Cursor) is
+--        use Ada.Calendar;
+--        use Ada.Calendar.Conversions;
+--        J    : constant Job := Job_Lists.Element (Position);
+--        User : constant String := To_String (Get_Owner (J));
+--
+--     begin
+--        if Quota_Inhibited (J) then
+--           Statistics.Quota_Inhibited (Get_ID (J));
+--           return;
+--        end if;
+--        Utils.Trace ("Looking at " & User & "'s job " & Get_ID (J));
+--        if not Supports_Balancer (J, High_Cores) then
+--           Utils.Trace ("High_Cores not supported");
+--           return;
+--        end if;
+--
+--        if Users.Count_Jobs (For_User => User) < Max_Pending_On_Underutilisation then
+--           declare
+--              Slot_Range : constant String := Comma_Convert (
+--                              Get_Context (J   => J,
+--                                           Key => SGE.Context.Slots_Extend));
+--           begin
+--              if Has_Context (J, SGE.Context.Last_Extension) then
+--                 Utils.Trace ("already extended");
+--                 return;
+--              end if;
+--              if Partitions.CPU_Available (For_Job      => J,
+--                                           Mark_As_Used => False,
+--                                           Fulfilling => Partitions.Maximum) then
+--                 Extend_Slots (J, Slot_Range);
+--                 Statistics.Extend_Range;
+--              else
+--                 Utils.Trace ("too few slots free");
+--              end if;
+--           end;
+--        else
+--           Utils.Trace ("user has too many qw jobs");
+--        end if;
+--     exception
+--        when E : Parser.Security_Error =>
+--           Ada.Text_IO.Put_Line (Exception_Message (E) & " while processing job" & Get_ID (J));
+--        when E : SGE.Parser.Parser_Error =>
+--           Ada.Text_IO.Put_Line (Exception_Message (E) & " while processing job" & Get_ID (J));
+--        when E : Support_Error =>
+--           Ada.Text_IO.Put_Line ("Job" & Get_ID (J) & " unexpectedly lacks Balancer support: "
+--                                 & Exception_Message (E));
+--        when E : others =>
+--           Ada.Text_IO.Put_Line ("unexpected error in job " & Get_ID (J) & ": "
+--                                 & Exception_Message (E));
+--     end Extend_Slots_Above;
+--
+--     procedure Extend_Slots_Below (J : Job) is
+--        use Ada.Calendar;
+--        use Ada.Calendar.Conversions;
+--     begin
+--        if On_Hold (J) then
+--           return;
+--        end if;
+--        if Quota_Inhibited (J) then
+--           Statistics.Quota_Inhibited (Positive'(Get_ID (J)));
+--           return;
+--        end if;
+--        Utils.Trace ("Looking at " & To_String (Get_Owner (J))
+--                     & "'s job " & Get_ID (J));
+--        if not Supports_Balancer (J, Low_Cores) then
+--           Utils.Trace ("Low_Cores not supported");
+--           return;
+--        end if;
+--
+--        if Queued_For_CPU (J)
+--          and then not Partitions.CPU_Available (J, Mark_As_Used => False,
+--                                                Fulfilling => Partitions.Minimum) then
+--           declare
+--              Threshold     : constant Duration := Duration'Value (
+--                              Get_Context (J   => J,
+--                                           Key => SGE.Context.Wait_Reduce));
+--              Slot_Range    : constant String := Comma_Convert (
+--                              Get_Context (J   => J,
+--                                           Key => SGE.Context.Slots_Reduce));
+--              Pending_Since : constant Time := To_Ada_Time (Interfaces.C.long'Value (
+--                              Get_Context (J   => J,
+--                                           Key => SGE.Context.Pending_Since)));
+--              Runtime       : constant String := Get_Context (J   => J,
+--                                                              Key => SGE.Context.Reduced_Runtime);
+--           begin
+--              if Has_Context (J, SGE.Context.Last_Reduction) then
+--                 declare
+--                    Last_Reduction : constant Time := Get_Last_Reduction (J);
+--                    -- will not raise an exception since Has_Context ("LASTRED") is true
+--                    Last_Migration : constant Time := Get_Last_Migration (J);
+--                 begin
+--                    if Last_Reduction > Last_Migration then
+--                       Utils.Trace ("already reduced");
+--                       return;
+--                    end if;
+--                 exception
+--                    when Constraint_Error =>
+--                       Utils.Trace ("already reduced");
+--                       return;
+--                 end;
+--              end if;
+--              if Clock > Pending_Since + Threshold then
+--                 Reduce_Slots (J, Slot_Range, Runtime);
+--                 Statistics.Reduce_Range;
+--              else
+--                 Utils.Trace ("too recent");
+--              end if;
+--           end;
+--        else
+--           Utils.Trace ("not queued for CPU, or free CPUs found");
+--        end if;
+--     exception
+--        when E : Parser.Security_Error =>
+--           Ada.Text_IO.Put_Line (Exception_Message (E) & " while processing job" & Get_ID (J));
+--        when E : SGE.Parser.Parser_Error =>
+--           Ada.Text_IO.Put_Line (Exception_Message (E) & " while processing job" & Get_ID (J));
+--        when E : Support_Error =>
+--           Ada.Text_IO.Put_Line ("Job" & Get_ID (J) & " unexpectedly lacks Balancer support: "
+--                                 & Exception_Message (E));
+--        when E : others =>
+--           Ada.Text_IO.Put_Line ("unexpected error in job " & Get_ID (J) & ": "
+--                                 & Exception_Message (E));
+--     end Extend_Slots_Below;
 
    begin
-      if Quota_Inhibited (J) then
-         Statistics.Quota_Inhibited (Get_ID (J));
-         return;
-      end if;
-      Utils.Trace ("Looking at " & User & "'s job " & Get_ID (J));
-      if not Supports_Balancer (J, High_Cores) then
-         Utils.Trace ("High_Cores not supported");
-         return;
-      end if;
-
-      if Users.Count_Jobs (For_User => User) < Max_Pending_On_Underutilisation then
-         declare
-            Slot_Range : constant String := Comma_Convert (
-                            Get_Context (J   => J,
-                                         Key => SGE.Context.Slots_Extend));
-         begin
-            if Has_Context (J, SGE.Context.Last_Extension) then
-               Utils.Trace ("already extended");
-               return;
-            end if;
-            if Partitions.CPU_Available (For_Job      => J,
-                                         Mark_As_Used => False,
-                                         Fulfilling => Partitions.Maximum) then
-               Extend_Slots (J, Slot_Range);
-               Statistics.Extend_Range;
-            else
-               Utils.Trace ("too few slots free");
-            end if;
-         end;
-      else
-         Utils.Trace ("user has too many qw jobs");
-      end if;
-   exception
-      when E : Parser.Security_Error =>
-         Ada.Text_IO.Put_Line (Exception_Message (E) & " while processing job" & Get_ID (J));
-      when E : SGE.Parser.Parser_Error =>
-         Ada.Text_IO.Put_Line (Exception_Message (E) & " while processing job" & Get_ID (J));
-      when E : Support_Error =>
-         Ada.Text_IO.Put_Line ("Job" & Get_ID (J) & " unexpectedly lacks Balancer support: "
-                               & Exception_Message (E));
-      when E : others =>
-         Ada.Text_IO.Put_Line ("unexpected error in job " & Get_ID (J) & ": "
-                               & Exception_Message (E));
-   end Extend_Slots_Above;
-
-   procedure Extend_Slots_Below (J : Job) is
-      use Ada.Calendar;
-      use Ada.Calendar.Conversions;
-   begin
-      if On_Hold (J) then
-         return;
-      end if;
-      if Quota_Inhibited (J) then
-         Statistics.Quota_Inhibited (Positive'(Get_ID (J)));
-         return;
-      end if;
-      Utils.Trace ("Looking at " & To_String (Get_Owner (J))
-                   & "'s job " & Get_ID (J));
-      if not Supports_Balancer (J, Low_Cores) then
-         Utils.Trace ("Low_Cores not supported");
-         return;
-      end if;
-
-      if Queued_For_CPU (J)
-        and then not Partitions.CPU_Available (J, Mark_As_Used => False,
-                                              Fulfilling => Partitions.Minimum) then
-         declare
-            Threshold     : constant Duration := Duration'Value (
-                            Get_Context (J   => J,
-                                         Key => SGE.Context.Wait_Reduce));
-            Slot_Range    : constant String := Comma_Convert (
-                            Get_Context (J   => J,
-                                         Key => SGE.Context.Slots_Reduce));
-            Pending_Since : constant Time := To_Ada_Time (Interfaces.C.long'Value (
-                            Get_Context (J   => J,
-                                         Key => SGE.Context.Pending_Since)));
-            Runtime       : constant String := Get_Context (J   => J,
-                                                            Key => SGE.Context.Reduced_Runtime);
-         begin
-            if Has_Context (J, SGE.Context.Last_Reduction) then
-               declare
-                  Last_Reduction : constant Time := Get_Last_Reduction (J);
-                  -- will not raise an exception since Has_Context ("LASTRED") is true
-                  Last_Migration : constant Time := Get_Last_Migration (J);
-               begin
-                  if Last_Reduction > Last_Migration then
-                     Utils.Trace ("already reduced");
-                     return;
-                  end if;
-               exception
-                  when Constraint_Error =>
-                     Utils.Trace ("already reduced");
-                     return;
-               end;
-            end if;
-            if Clock > Pending_Since + Threshold then
-               Reduce_Slots (J, Slot_Range, Runtime);
-               Statistics.Reduce_Range;
-            else
-               Utils.Trace ("too recent");
-            end if;
-         end;
-      else
-         Utils.Trace ("not queued for CPU, or free CPUs found");
-      end if;
-   exception
-      when E : Parser.Security_Error =>
-         Ada.Text_IO.Put_Line (Exception_Message (E) & " while processing job" & Get_ID (J));
-      when E : SGE.Parser.Parser_Error =>
-         Ada.Text_IO.Put_Line (Exception_Message (E) & " while processing job" & Get_ID (J));
-      when E : Support_Error =>
-         Ada.Text_IO.Put_Line ("Job" & Get_ID (J) & " unexpectedly lacks Balancer support: "
-                               & Exception_Message (E));
-      when E : others =>
-         Ada.Text_IO.Put_Line ("unexpected error in job " & Get_ID (J) & ": "
-                               & Exception_Message (E));
-   end Extend_Slots_Below;
 
    ----------
    -- Init --
@@ -373,18 +376,23 @@ package body Jobs is
       return Res.Contains (To_Unbounded_String ("gpu"));
    end Queued_For_GPU;
 
-   procedure Reduce_Slots (J : Job; To : String; Runtime : String) is
-      New_Resources : SGE.Resources.Hashed_List := Get_Hard_Resources (J);
+--     procedure Reduce_Slots (J : Job; To : String; Runtime : String) is
+--        New_Resources : SGE.Resources.Hashed_List := Get_Hard_Resources (J);
+--        Item : Changed_Job := (ID => Get_ID (J), New_State => reduced, Timestamp => "LASTRED", Slots => To);
+--     begin
+--        if Runtime /= "" then
+--           New_Resources.Delete (Key => To_Unbounded_String ("h_rt"));
+--           Resources.Add (To => New_Resources, Name => "h_rt", Value => Runtime);
+--        end if;
+--        Item.Resources := New_Resources;
+--        Modified.Append (Item);
+--     end Reduce_Slots;
+
+   procedure Set_Slots (J : in out Changed_Job; To : String) is
    begin
-      if Runtime /= "" then
-         New_Resources.Delete (Key => To_Unbounded_String ("h_rt"));
-         Resources.Add (To => New_Resources, Name => "h_rt", Value => Runtime);
-      end if;
-      Parser.Alter_Job (Job                => J,
-                        Insecure_Resources => Resources.To_Requirement (New_Resources),
-                        Slots              => To,
-                       Timestamp_Name => "LASTRED");
-   end Reduce_Slots;
+      J.Slots := SGE.Ranges.To_Step_Range_List (To);
+   end Set_Slots;
+
 
    procedure Shift (J : Natural; To : String) is
    begin
