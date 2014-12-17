@@ -1,8 +1,8 @@
 .gdb_history
 obj
-ruless.adb
-ruless.ads
-rulesp.adb
-rulesp.ads
-rules.err
-rules.lst
+src/ruless.adb
+src/ruless.ads
+src/rulesp.adb
+src/rulesp.ads
+src/rules.err
+src/rules.lst
