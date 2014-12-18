@@ -67,7 +67,7 @@ package body Jobs is
    begin
       Parser.Alter_Job (ID => J.ID,
                         Insecure_Resources => J.Resources.To_String,
-                        Slots              => SGE.Ranges.To_String (J.Slots, True),
+                        Slots              => SGE.Ranges.To_SGE_Input (J.Slots),
                         PE                 => To_String (J.PE),
                         Timestamp_Name => Timestamp (J));
    end Apply_Changes;
@@ -393,6 +393,7 @@ package body Jobs is
       New_Resources.Delete (Key => To_Unbounded_String ("gpu"));
       Item.Resources := New_Resources;
       Set_Slots (Item, Comma_Convert (Get_Context (J => J, Key => SGE.Context.Slots_CPU)));
+      Set_PE (Item, Get_PE (J));
       Modified.Append (Item);
    end Migrate_To_CPU;
 
@@ -403,6 +404,7 @@ package body Jobs is
       Resources.Add (New_Resources, Name => "gpu", Value => "1");
       Item.Resources := New_Resources;
       Set_Slots (Item, Comma_Convert (Get_Context (J => J, Key => SGE.Context.Slots_GPU)));
+      Set_PE (Item, Get_PE (J));
       Modified.Append (Item);
    end Migrate_To_GPU;
 
@@ -429,6 +431,11 @@ package body Jobs is
 --        Item.Resources := New_Resources;
 --        Modified.Append (Item);
 --     end Reduce_Slots;
+
+   procedure Set_PE (J : in out Changed_Job; To : Unbounded_String) is
+   begin
+      J.PE := To;
+   end Set_PE;
 
    procedure Set_Slots (J : in out Changed_Job; To : String) is
    begin

@@ -27,6 +27,7 @@ package Sanitiser is
 
    type Operation_List is tagged private;
    procedure Append (Container : in out Operation_List; New_Item : Operation);
+   procedure Clear (Container : in out Operation_List);
 
    always : constant Operation_List;
 

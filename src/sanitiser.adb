@@ -40,6 +40,11 @@ package body Sanitiser is
       Rules.Iterate (Apply_Rule'Access);
    end Apply_Rules;
 
+   overriding procedure Clear (Container : in out Operation_List) is
+   begin
+      Operation_Lists.Clear (Operation_Lists.List (Container));
+   end Clear;
+
    function Get_Name (R : Rule) return String is
    begin
       return To_String (R.Name);

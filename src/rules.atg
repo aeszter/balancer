@@ -75,13 +75,15 @@ PRODUCTIONS
 
    ActionList<List : out  Operation_List>
                                        (. A :  Operation; .)
-   = Action<A>                         (. List.Append (A); .)
+   = Action<A>                         (. Clear (List);
+                                          List.Append (A); .)
      { "and" Action<A>                 (. List.Append (A); .)
      }.
 
    CondList<List : out  Operation_List>
                                        (. O :  Operation; .)
-   = Condition<O>                      (. List.Append (O); .)
+   = Condition<O>                      (. Clear (List);
+                                          List.Append (O); .)
      { "and" Condition<O>              (. List.Append (O); .)
      }.
 

@@ -2,7 +2,7 @@ with SGE.Jobs;
 
 package Parser is
    Security_Error : exception;
-   Resource_Selector : constant String := "-F h_rt,eth,ib,ibs,ssd,gpu,mem_total,num_proc,cm,q,slots";
+   Resource_Selector : constant String := "-F h_rt,eth,ib,ibs,ssd,gpu,mem_total,num_proc,cm,gm,q,slots";
 
    procedure Alter_Job (ID                 : Positive;
       Insecure_Resources : String := "";

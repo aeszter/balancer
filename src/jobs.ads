@@ -40,6 +40,7 @@ private
 
    function Init (ID : Positive; Old_State, New_State : State) return Changed_Job;
    procedure Set_Slots (J : in out Changed_Job; To : String);
+   procedure Set_PE (J : in out Changed_Job; To : Unbounded_String);
 
    function Equal_Jobs (Left, Right : Job) return Boolean;
    function Equal_Jobs (Left, Right : Changed_Job) return Boolean;
