@@ -30,6 +30,8 @@ package Utils is
 
    procedure Check_Options;
 
+   function To_Number (Num : String) return Integer;
+
    type Operation_Mode is (automatic, manual);
 
 private

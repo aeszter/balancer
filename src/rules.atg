@@ -1,5 +1,12 @@
 COMPILER Rules
 
+   subtype String_Ptr is FileIO.String_Ptr;
+
+   pragma Warnings (Off, "redundant parentheses"); -- for generated code
+   pragma Style_Checks (Off);
+
+
+
 CHARACTERS
    letter = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_".
    digit = "0123456789".
@@ -20,78 +27,124 @@ IGNORE eol + lf + tab
 
 PRODUCTIONS
    Rules
-   = Rule
+   = One_Rule
      ';'
-     { Rule ';' }.
+     { One_Rule ';' }.
 
-   Rule
-   = ident
-     ':' Transition
-     ( BranchChain | ActionList)
-     ';'.
+   One_Rule                            (. R :  Rule;
+                                          name : String_Ptr;
+                                          C : Branch_Chain;
+                                          D : Decision;
+                                          L : Operation_List; .)
+   = Ident<name>                       (. Set_Name (R, name); .)
+     ':' Transition<R>
+     ( BranchChain<C>                  (. Set_Contents (R, C); .)
+     | ActionList<L>                   (. Set_Action (D, L);
+                                          Set_Condition (D, always);
+                                          C.Append (D);
+                                          Set_Contents (R, C); .)
+     )
+     ';'                               (. Add_Rule (R); .).
 
-   Transition
-   = WC_State
+   Ident<Name : out String_Ptr>
+   = ident                             (. RulesS.Get_Name (RulesS.pos, RulesS.len, Name); .).
+
+   Transition<R : in out  Rule> (. S : Jobs.State; .)
+   = WC_State<S>                       (. Set_From (R, S); .)
      "->"
-     WC_State.
+     WC_State<S>                       (. Set_To (R, S); .).
 
-   WC_State
-   = State | '*'.
+   WC_State<S : out Jobs.State>
+   = State<S>
+     | '*'                             (. S := Jobs.any; .).
 
-   BranchChain
+   BranchChain<Chain : out  Branch_Chain>
+                                       (. L :  Operation_List;
+                                          D :  Decision; .)
    = "if"
-     CondList
+     CondList<L>                       (. Set_Condition (D, L); .)
      "then"
-     ActionList
+     ActionList<L>                     (. Set_Action (D, L);
+                                          Chain.Append (D); .)
      { "elsif"
-     CondList
+     CondList<L>                       (. Set_Condition (D, L); .)
      "then"
-     ActionList }.
+     ActionList<L>                     (. Set_Action (D, L);
+                                          Chain.Append (D); .)
+     }.
 
-   ActionList
-   = Action
-     { "and" Action }.
+   ActionList<List : out  Operation_List>
+                                       (. A :  Operation; .)
+   = Action<A>                         (. List.Append (A); .)
+     { "and" Action<A>                 (. List.Append (A); .)
+     }.
 
-   CondList
-   = Condition
-     { "and" Condition }.
+   CondList<List : out  Operation_List>
+                                       (. O :  Operation; .)
+   = Condition<O>                      (. List.Append (O); .)
+     { "and" Condition<O>              (. List.Append (O); .)
+     }.
 
-   State
-   = "cpu" | "gpu".
+   State<S : out Jobs.State>
+   = "cpu"                             (. S := Jobs.cpu; .)
+     | "gpu"                           (. S := Jobs.gpu; .).
 
-   Condition
-   = Property
-     RelOp
-     Literal.
+   Condition<C : out Operation>        (. Lit :  Multitype;
+                                          Op :  Operator;
+                                          Prop :  Kind; .)
+   = Property<Prop>                    (. Set_Property (C, Prop); .)
+     RelOp<Op>                         (. Set_Operator (C, Op); .)
+     Literal<Lit>                      (. Set_Literal (C, Lit); .).
 
-   Action
-   = ( "add" | "remove" )
-     Literal
+   Action<A : out  Operation>          (. Lit :  Multitype;
+                                          Prop :  Kind; .)
+   = ( "add"                           (. Set_Operator (A,  add); .)
+     | "remove"                        (. Set_Operator (A,  remove); .)
+     )
+     Literal<Lit>                      (. Set_Literal (A, Lit); .)
      ( "to" | "from" )
-     Property
-   | "set"
-     Property
+     Property<Prop>                    (. Set_Property (A, Prop); .)
+   | "set"                             (. Set_Operator (A,  assign); .)
+     Property<Prop>                    (. Set_Property (A, Prop); .)
      "to"
-     Literal.
+     Literal<Lit>                      (. Set_Literal (A, Lit); .).
 
-   Literal
-   = string | NumSet | Boolean.
+   Literal<Lit : out Multitype>        (. S : String_Ptr;
+                                           Num :  Step_Range_List;
+                                           B : Boolean; .)
+   = string                            (. RulesS.Get_Name (RulesS.pos, RulesS.len, S);
+                                           Set_String (Lit, S.all); .)
+     | NumSet<Num>                     (. Set_Slots (Lit, Num); .)
+     | Bool<B>                         (. Set_Bool (Lit, B); .).
 
-   RelOp
-   = "=" | "~" | "^" | "<" | ">".
+   RelOp<Op : out  Operator>
+   = "="                               (. Op :=  equal; .)
+     | "~"                             (. Op :=  matches; .)
+     | "^"                             (. Op :=  intersects; .)
+     | "<"                             (. Op :=  subset; .)
+     | ">"                             (. Op :=  contains; .).
 
-   Property
-   = "PE" | "slots" | "resources" | "reservation".
+   Property<Prop : out  Kind>
+   = "PE"                              (. Prop :=  PE; .)
+     | "slots"                         (. Prop :=  Slots; .)
+     | "resources"                     (. Prop :=  Resources; .)
+     | "reservation"                   (. Prop :=  Reservation; .).
 
-   Boolean
-   = "on" | "off" | "true" | "false".
+   Bool<Value : out Boolean>
+   = "on" | "true"                     (. Value := True; .)
+     | "off" | "false"                 (. Value := False; .).
 
-   NumSet
-   = NumRange
-     { "," NumRange }.
+   NumSet<Num : out  Step_Range_List>   (. R :  Step_Range; .)
+   = NumRange<R>                       (. Num.Append (R); .)
+     { "," NumRange<R>                 (. Num.Append (R); .)
+     }.
 
-   NumRange
-   = number
-     [ "-" number ].
+   NumRange<R : out  Step_Range> (. S : String_Ptr; .)
+   = number                            (. RulesS.Get_Name (RulesS.pos, RulesS.len, S);
+                                         R.Min := Utils.To_Number (S.all);
+                                         R.Max := R.Min; .)
+     [ "-" number                      (. RulesS.Get_Name (RulesS.pos, RulesS.len, S);
+                                         R.Max := Utils.To_Number (S.all); .)
+     ].
 
 END Rules.

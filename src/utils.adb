@@ -36,6 +36,28 @@ package body Utils is
       return not Action;
    end Dry_Run;
 
+   procedure Enable_Debug is
+   begin
+      Debug_Enabled := True;
+   end Enable_Debug;
+
+   function Get_Job return Natural is
+   begin
+      return Integer'Value (To_String (Manual_Job));
+   end Get_Job;
+
+   function Random return Float_Random.Uniformly_Distributed is
+   begin
+      return Float_Random.Random (Random_Generator);
+   end Random;
+
+   procedure Trace (Message : String) is
+   begin
+      if Trace_Policy then
+         Put_Line (Message);
+      end if;
+   end Trace;
+
    ---------------------
    -- Verbose_Message --
    ---------------------
@@ -46,13 +68,6 @@ package body Utils is
          Put_Line (Message);
       end if;
    end Verbose_Message;
-
-   procedure Trace (Message : String) is
-   begin
-      if Trace_Policy then
-         Put_Line (Message);
-      end if;
-   end Trace;
 
    procedure Error_Message (Message : String; Bug_ID : Natural := 0) is
    begin
@@ -67,12 +82,6 @@ package body Utils is
    ------------------
    -- Enable_Debug --
    ------------------
-
-   procedure Enable_Debug is
-   begin
-      Debug_Enabled := True;
-   end Enable_Debug;
-
 
    -------------------
    -- Check_Options --
@@ -134,11 +143,6 @@ package body Utils is
       return Mode = manual;
    end On_Manual;
 
-   function Get_Job return Natural is
-   begin
-      return Integer'Value (To_String (Manual_Job));
-   end Get_Job;
-
    function Get_Destination return String is
    begin
       return To_String (Manual_Destination);
@@ -149,11 +153,6 @@ package body Utils is
       return Stats;
    end Stats_Enabled;
 
-
-   function Random return Float_Random.Uniformly_Distributed is
-   begin
-      return Float_Random.Random (Random_Generator);
-   end Random;
 
    procedure Init_Random is
    begin
@@ -169,6 +168,11 @@ package body Utils is
    begin
       return Image (Date => Ada.Calendar.Clock, Picture => Raw_Time);
    end Now;
+
+   function To_Number (Num : String) return Integer is
+   begin
+      return Integer'Value (Num);
+   end To_Number;
 
 
 end Utils;

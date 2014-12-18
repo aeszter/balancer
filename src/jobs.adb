@@ -80,7 +80,7 @@ package body Jobs is
       Users.Iterate (Balance_CPU_GPU'Access);
 --      Utils.Trace ("Extending slot ranges to more cores");
 --      Chain_Heads.Iterate (Extend_Slots_Above'Access);
-      Utils.Trace ("Applying changes");
+      Utils.Trace ("Applying changes to" & Modified.Length'Img & " jobs");
       Modified.Iterate (Apply_Changes'Access);
    end Balance;
 
