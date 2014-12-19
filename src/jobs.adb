@@ -313,6 +313,26 @@ package body Jobs is
       return J.ID'Img;
    end Get_ID;
 
+   function Get_PE (J : Changed_Job) return String is
+   begin
+      return To_String (J.PE);
+   end Get_PE;
+
+   function Get_Reservation (J : Changed_Job) return SGE.Utils.Tri_State is
+   begin
+      return J.Reserve;
+   end Get_Reservation;
+
+   function Get_Resources (J : Changed_Job) return SGE.Resources.Hashed_List is
+   begin
+      return J.Resources;
+   end Get_Resources;
+
+   function Get_Slots (J : Changed_Job) return SGE.Ranges.Step_Range_List is
+   begin
+      return J.Slots;
+   end Get_Slots;
+
    ----------
    -- Init --
    ----------

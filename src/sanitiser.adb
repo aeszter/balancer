@@ -1,11 +1,17 @@
 with Ada.Text_IO; use Ada.Text_IO;
 with Ada.Exceptions; use Ada.Exceptions;
+with GNAT.Regpat;
+with SGE.Utils;
 with RulesP; with RulesS;
 with Utils;
 
 package body Sanitiser is
 
    Rules_File : constant String := "/etc/balancer.rules";
+
+   procedure Apply_Branch_Chain (J : in out Changed_Job; Instructions : Branch_Chain);
+   function Evaluate (J : Changed_Job; Condition : Operation_List) return Boolean;
+   procedure Apply (J : in out Changed_Job; Action : Operation_List);
 
    procedure Add_Rule (R : Rule) is
    begin
@@ -22,7 +28,28 @@ package body Sanitiser is
       Decision_Chains.Append (Decision_Chains.List (Container), New_Item);
    end Append;
 
-   procedure Apply_Rules (J : Changed_Job) is
+   procedure Apply (J : in out Changed_Job; Action : Operation_List) is
+   begin
+      null;
+      Utils.Trace ("Rule-based job changes are not yet applied");
+   end Apply;
+
+   procedure Apply_Branch_Chain (J : in out Changed_Job; Instructions : Branch_Chain) is
+      use Decision_Chains;
+      Position : Decision_Chains.Cursor := Instructions.First;
+      This_Decision : Decision;
+   begin
+      while Position /= Decision_Chains.No_Element loop
+         This_Decision := Element (Position);
+         if Evaluate (J, This_Decision.Condition) then
+            Apply (J, This_Decision.Action);
+            exit;
+         end if;
+         Next (Position);
+      end loop;
+   end Apply_Branch_Chain;
+
+   procedure Apply_Rules (J : in out Changed_Job) is
       procedure Apply_Rule (Position : Rule_Lists.Cursor);
 
       procedure Apply_Rule (Position : Rule_Lists.Cursor) is
@@ -32,7 +59,7 @@ package body Sanitiser is
                         Old_State => The_Rule.From,
                         New_State => The_Rule.To) then
             Utils.Trace ("Found a match: " & To_String (The_Rule.Name));
-            Utils.Error_Message ("Further checking and application still unimplemented");
+            Apply_Branch_Chain (J, The_Rule.Contents);
          end if;
       end Apply_Rule;
    begin
@@ -40,10 +67,103 @@ package body Sanitiser is
       Rules.Iterate (Apply_Rule'Access);
    end Apply_Rules;
 
+   function Check_PE (J : Changed_Job; Op : Operator; Value : Multitype) return Boolean is
+      use GNAT.Regpat;
+   begin
+      if Value.Switch /= str then
+         raise Program_Error with "Check_PE called with non-string literal";
+      end if;
+      case Op is
+         when equal
+            => return Get_PE (J) = Value.String_Value;
+         when matches
+            => return GNAT.Regpat.Match (Expression => To_String (Value.String_Value),
+                                         Data       => Get_PE (J));
+         when others
+            => raise Rule_Error with Op'Img & "encountered when comparing PEs";
+      end case;
+   end Check_PE;
+
+   function Check_Reservation (J : Changed_Job; Op : Operator; Value : Multitype) return Boolean is
+      use SGE.Utils;
+   begin
+      if Op /= equal then
+         raise Rule_Error with "unexpected operator" & Op'Img & " when comparing reservation";
+      end if;
+      if Value.Switch /= bool then
+         raise Program_Error with "Check_Reservation called with non-boolean literal";
+      end if;
+      case Get_Reservation (J) is
+         when Tri_State'(True)
+            => return Value.Bool_Value;
+         when False
+            => return not Value.Bool_Value;
+         when Undecided
+            => raise Program_Error with "Job" & Get_ID (J) & " has undecided reservation";
+      end case;
+   end Check_Reservation;
+
+   function Check_Resources (J : Changed_Job; Op : Operator; Value : Multitype) return Boolean is
+   begin
+      if Value.Switch /= str then
+         raise Program_Error with "Check_Resources called with non-string literal";
+      end if;
+      case Op is
+         when others => Utils.Error_Message ("Check_Resources unimplemented");
+      end case;
+      return False;
+   end Check_Resources;
+
+   function Check_Slots (J : Changed_Job; Op : Operator; Value : Multitype) return Boolean is
+      use SGE.Ranges;
+   begin
+      if Value.Switch /= slots then
+         raise Program_Error with "Check_Slots called with non-slots literal";
+      end if;
+      case Op is
+         when subset
+            => return SGE.Ranges.Is_Subset (Subset => Value.Slot_Value,
+                                            Of_Set => Get_Slots (J));
+         when intersects
+            => return SGE.Ranges.Intersects (Left => Value.Slot_Value,
+                                            Right => Get_Slots (J));
+         when equal
+            => return Value.Slot_Value = Get_Slots (J);
+         when others
+            => raise Rule_Error with Op'Img & " encountered when comparing slots";
+      end case;
+   end Check_Slots;
+
    overriding procedure Clear (Container : in out Operation_List) is
    begin
       Operation_Lists.Clear (Operation_Lists.List (Container));
    end Clear;
+
+   function Evaluate (J : Changed_Job; Condition : Operation_List) return Boolean is
+      use Operation_Lists;
+      procedure Evaluate_One (Position : Operation_Lists.Cursor);
+
+      Result : Boolean := True;
+
+      procedure Evaluate_One (Position : Operation_Lists.Cursor) is
+         Condition : constant Operation := Element (Position);
+      begin
+         case Condition.Object is
+            when PE
+               => Result := Result and then Check_PE (J, Condition.Oper, Condition.Value);
+            when Slots
+               => Result := Result and then Check_Slots (J, Condition.Oper, Condition.Value);
+            when Resources
+               => Result := Result and then Check_Resources (J, Condition.Oper, Condition.Value);
+            when Reservation
+               => Result := Result and then Check_Reservation (J, Condition.Oper, Condition.Value);
+         end case;
+      end Evaluate_One;
+
+   begin
+      Condition.Iterate (Evaluate_One'Access);
+      return Result;
+   end Evaluate;
 
    function Get_Name (R : Rule) return String is
    begin

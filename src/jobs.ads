@@ -3,6 +3,7 @@ with Ada.Containers.Doubly_Linked_Lists;
 with SGE.Jobs;
 with SGE.Resources;
 with SGE.Ranges;
+with SGE.Utils;
 
 package Jobs is
    subtype Job is SGE.Jobs.Job;
@@ -26,12 +27,16 @@ package Jobs is
    function Match (J : Changed_Job; Old_State, New_State : State) return Boolean;
 
    function Get_ID (J : Changed_Job) return String;
+   function Get_Reservation (J : Changed_Job) return SGE.Utils.Tri_State;
+   function Get_PE (J : Changed_Job) return String;
+   function Get_Resources (J : Changed_Job) return SGE.Resources.Hashed_List;
+   function Get_Slots (J : Changed_Job) return SGE.Ranges.Step_Range_List;
+
 
 private
-   type Reservation is (unchanged, false, true);
    type Changed_Job is record
       ID : Positive;
-      Reserve : Reservation := unchanged;
+      Reserve : SGE.Utils.Tri_State := SGE.Utils.Undecided;
       Old_State, New_State : State := undefined;
       PE                   : Unbounded_String := Null_Unbounded_String;
       Resources            : SGE.Resources.Hashed_List;

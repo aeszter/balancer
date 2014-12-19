@@ -6,6 +6,8 @@ with FileIO;
 
 package Sanitiser is
 
+   Rule_Error : exception;
+
    use type FileIO.String_Ptr;
    subtype String_Ptr is FileIO.String_Ptr;
    subtype Step_Range is SGE.Ranges.Step_Range;
@@ -47,7 +49,12 @@ package Sanitiser is
    procedure Set_Contents (R : in out Rule; Content : Branch_Chain);
 
    procedure Init;
-   procedure Apply_Rules (J : Changed_Job);
+   procedure Apply_Rules (J : in out Changed_Job);
+
+   function Check_PE (J : Changed_Job; Op : Operator; Value : Multitype) return Boolean;
+   function Check_Slots (J : Changed_Job; Op : Operator; Value : Multitype) return Boolean;
+   function Check_Resources (J : Changed_Job; Op : Operator; Value : Multitype) return Boolean;
+   function Check_Reservation (J : Changed_Job; Op : Operator; Value : Multitype) return Boolean;
 
 
 private
