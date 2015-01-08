@@ -7,7 +7,7 @@ with POSIX.Process_Times; use POSIX.Process_Times;
 
 package body Diagnostics is
 
-   type Seconds is delta 0.1 digits 5;
+   type Seconds is delta 0.1 digits 6;
 
    function To_Seconds (T : Tick_Count) return Seconds;
    procedure Put_Time;
