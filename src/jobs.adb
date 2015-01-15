@@ -16,6 +16,7 @@ with Users;
 with Utils;
 with SGE.Quota;
 with SGE.Context;
+with Sanitiser;
 
 
 
@@ -428,6 +429,7 @@ package body Jobs is
       Item.Resources := New_Resources;
       Set_Slots (Item, Comma_Convert (Get_Context (J => J, Key => SGE.Context.Slots_CPU)));
       Set_PE (Item, Get_PE (J));
+      Sanitiser.Apply_Rules (Item);
       Modified.Append (Item);
    end Migrate_To_CPU;
 
@@ -439,6 +441,7 @@ package body Jobs is
       Item.Resources := New_Resources;
       Set_Slots (Item, Comma_Convert (Get_Context (J => J, Key => SGE.Context.Slots_GPU)));
       Set_PE (Item, Get_PE (J));
+      Sanitiser.Apply_Rules (Item);
       Modified.Append (Item);
    end Migrate_To_GPU;
 

@@ -29,9 +29,93 @@ package body Sanitiser is
    end Append;
 
    procedure Apply (J : in out Changed_Job; Action : Operation_List) is
+      procedure Apply_Operation (Position : Operation_Lists.Cursor := Action.First);
+      procedure Apply_To_PE (Op : Operator; Value : Multitype);
+      procedure Apply_To_Resources (Op : Operator; Value : Multitype);
+      procedure Apply_To_Slots (Op : Operator; Value : Multitype);
+      procedure Apply_To_Reservation (Op : Operator; Value : Multitype);
+
+      procedure Apply_Operation (Position : Operation_Lists.Cursor := Action.First) is
+         O : constant Operation := Operation_Lists.Element (Position);
+      begin
+         case O.Object is
+            when PE =>
+               if O.Value.Switch /= str then
+                  raise Rule_Error with O.Value.Switch'Img
+                    & " encountered for PE Object";
+               end if;
+               Apply_To_PE (O.Oper, O.Value);
+            when Resources =>
+               if O.Value.Switch /= str then
+                  raise Rule_Error with O.Value.Switch'Img
+                    & "encountered for Resource Object";
+               end if;
+               Apply_To_Resources (O.Oper, O.Value);
+            when Slots =>
+               if O.Value.Switch /= slots then
+                  raise Rule_Error with O.Value.Switch'Img
+                    & " encountered for Slots Object";
+               end if;
+               Apply_To_Slots (O.Oper, O.Value);
+            when Reservation =>
+               if O.Value.Switch /= bool then
+                  raise Rule_Error with O.Value.Switch'Img
+                    & " encountered for Reservation Object";
+               end if;
+               Apply_To_Reservation (O.Oper, O.Value);
+         end case;
+      end Apply_Operation;
+
+      procedure Apply_To_PE (Op : Operator; Value : Multitype) is
+      begin
+         case Op is
+            when assign =>
+               Set_PE (J, Value.String_Value);
+            when others =>
+               raise Rule_Error with "unsupported operator " & Op'Img &
+               " in Apply_to_PE";
+         end case;
+      end Apply_To_PE;
+
+      procedure Apply_To_Reservation (Op : Operator; Value : Multitype) is
+      begin
+         case Op is
+            when assign =>
+               Set_Reservation (J, Value.Bool_Value);
+            when others =>
+               raise Rule_Error with "unsupported operator " & Op'Img &
+               " in Apply_to_Reservation";
+         end case;
+      end Apply_To_Reservation;
+
+      procedure Apply_To_Resources (Op : Operator; Value : Multitype) is
+      begin
+         case Op is
+            when assign =>
+               Set_Resources (J, Value.String_Value);
+            when add =>
+               Add_Resource (J, Get_String (Value));
+            when remove =>
+               Remove_Resource (J, Value.String_Value);
+            when others =>
+               raise Rule_Error with "unsupported operator " & Op'Img &
+               " in Apply_to_Resources";
+         end case;
+      end Apply_To_Resources;
+
+      procedure Apply_To_Slots (Op : Operator; Value : Multitype) is
+      begin
+         case Op is
+            when assign =>
+               Set_Slots (J, Value.Slot_Value);
+            when others =>
+               raise Rule_Error with "unsupported operator " & Op'Img &
+               " in Apply_to_Slots";
+         end case;
+      end Apply_To_Slots;
+
    begin
-      null;
-      Utils.Trace ("Rule-based job changes are not yet applied");
+      Action.Iterate (Apply_Operation'Access);
    end Apply;
 
    procedure Apply_Branch_Chain (J : in out Changed_Job; Instructions : Branch_Chain) is
