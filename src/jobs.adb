@@ -29,38 +29,7 @@ package body Jobs is
    procedure Apply_Changes (Position : Changed_Lists.Cursor);
    function Timestamp (J : Changed_Job) return String;
 
-   procedure Add_Chain_Head (J : Job) is
-      procedure Test_Hold (ID : Natural);
-
-      Any_Held : Boolean := False;
-
-      procedure Test_Hold (ID : Natural) is
-      begin
-         if On_Hold (Find_Job (ID)) then
-            Any_Held := True;
-         end if;
-      exception
-         when Constraint_Error =>
-            --  job not listed, i.e. not pending
-            null;
-      end Test_Hold;
-
    begin
-      if not On_Hold (J) then
-         return;
-      end if;
-      Iterate_Predecessors (J, Test_Hold'Access);
-      if Any_Held then
-         return;
-      end if;
-      Chain_Count := Chain_Count + 1;
-      if not Supports_Balancer (J, High_Cores) then
-         return;
-      end if;
-      Chain_Heads.Append (J);
-      Utils.Trace ("Found chain head " & Get_ID (J));
-   end Add_Chain_Head;
-
 
    procedure Apply_Changes (Position : Changed_Lists.Cursor) is
       J : constant Changed_Job := Changed_Lists.Element (Position);
@@ -71,6 +40,38 @@ package body Jobs is
                         PE                 => To_String (J.PE),
                         Timestamp_Name => Timestamp (J));
    end Apply_Changes;
+
+--     procedure Add_Chain_Head (J : Job) is
+--        procedure Test_Hold (ID : Natural);
+--
+--        Any_Held : Boolean := False;
+--
+--        procedure Test_Hold (ID : Natural) is
+--        begin
+--           if On_Hold (Find_Job (ID)) then
+--              Any_Held := True;
+--           end if;
+--        exception
+--           when Constraint_Error =>
+--              --  job not listed, i.e. not pending
+--              null;
+--        end Test_Hold;
+--
+--     begin
+--        if not On_Hold (J) then
+--           return;
+--        end if;
+--        Iterate_Predecessors (J, Test_Hold'Access);
+--        if Any_Held then
+--           return;
+--        end if;
+--        Chain_Count := Chain_Count + 1;
+--        if not Supports_Balancer (J, High_Cores) then
+--           return;
+--        end if;
+--        Chain_Heads.Append (J);
+--        Utils.Trace ("Found chain head " & Get_ID (J));
+--     end Add_Chain_Head;
 
    procedure Balance is
    begin
@@ -365,12 +366,12 @@ package body Jobs is
       SGE.Jobs.Iterate (Parser.Add_Pending_Since'Access);
       SGE.Jobs.Iterate (Users.Add_Job'Access);
       Chain_Count := 0;
-      SGE.Jobs.Iterate (Add_Chain_Head'Access);
+--      SGE.Jobs.Iterate (Add_Chain_Head'Access);
       Utils.Verbose_Message (SGE.Jobs.Count (Not_On_Hold'Access)'Img
                              & " by" & Users.Total_Users'Img
                              & " users eligible for re-queueing");
-      Utils.Verbose_Message (Chain_Count'Img & " chain heads found ("
-                             & Chain_Heads.Length'Img & " with extension support)");
+--      Utils.Verbose_Message (Chain_Count'Img & " chain heads found ("
+--                             & Chain_Heads.Length'Img & " with extension support)");
    end Init;
 
    function Init (ID : Positive; Old_State, New_State : State) return Changed_Job is
