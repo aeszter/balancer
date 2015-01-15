@@ -29,7 +29,13 @@ package body Jobs is
    procedure Apply_Changes (Position : Changed_Lists.Cursor);
    function Timestamp (J : Changed_Job) return String;
 
+   procedure Add_Resource (J : in out Changed_Job; Res : String) is
+      Separator : constant Natural := Ada.Strings.Fixed.Index (Res, "=");
+      Name      : constant String := Res (Res'First .. Separator - 1);
+      Value     : constant String := Res (Separator + 1 .. Res'Last);
    begin
+      Resources.Add (To => J.Resources, Name => Name, Value => Value);
+   end Add_Resource;
 
    procedure Apply_Changes (Position : Changed_Lists.Cursor) is
       J : constant Changed_Job := Changed_Lists.Element (Position);
@@ -460,16 +466,36 @@ package body Jobs is
 --        Modified.Append (Item);
 --     end Reduce_Slots;
 
+   procedure Remove_Resource (J : in out Changed_Job; Res : Unbounded_String) is
+   begin
+      J.Resources.Exclude (Res);
+   end Remove_Resource;
+
    procedure Set_PE (J : in out Changed_Job; To : Unbounded_String) is
    begin
       J.PE := To;
    end Set_PE;
+
+   procedure Set_Reservation (J : in out Changed_Job; To : Boolean) is
+   begin
+      J.Reserve := To_Tri_State (To);
+   end Set_Reservation;
+
+   procedure Set_Resources (J : in out Changed_Job; To : Unbounded_String) is
+   begin
+      J.Resources.Clear;
+      Add_Resource (J, To_String (To));
+   end Set_Resources;
 
    procedure Set_Slots (J : in out Changed_Job; To : String) is
    begin
       J.Slots := SGE.Ranges.To_Step_Range_List (To);
    end Set_Slots;
 
+   procedure Set_Slots (J : in out Changed_Job; To : SGE.Ranges.Step_Range_List) is
+   begin
+      J.Slots := To;
+   end Set_Slots;
 
    procedure Shift (J : Natural; To : String) is
    begin
