@@ -1,5 +1,6 @@
 with Ada.Numerics.Float_Random;
 with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
+with SGE.Utils;
 
 package Utils is
    Version : String := "feature:rules";
@@ -21,8 +22,11 @@ package Utils is
    function On_Automatic return Boolean;
    function On_Manual return Boolean;
 
-   function Get_Job return Natural;
    function Get_Destination return String;
+   procedure Rewind_Manual_Jobs;
+   procedure Next_Manual_Job;
+   function Has_Manual_Job return Boolean;
+   function Get_Manual_Job return Positive;
 
    function Random return Ada.Numerics.Float_Random.Uniformly_Distributed;
    procedure Init_Random;
@@ -42,5 +46,7 @@ private
    Trace_Policy     : Boolean := False;
    Random_Generator : Ada.Numerics.Float_Random.Generator;
    Mode             : Operation_Mode := automatic;
-   Manual_Job, Manual_Destination : Unbounded_String;
+   Manual_Destination : Unbounded_String;
+   Manual_Jobs      : SGE.Utils.ID_List;
+   Current_Manual_Job : SGE.Utils.ID_Lists.Cursor;
 end Utils;

@@ -27,7 +27,17 @@ begin
 
       Jobs.Balance;
    elsif Utils.On_Manual then
-      Jobs.Shift (J => Utils.Get_Job, To => Utils.Get_Destination);
+      Utils.Rewind_Manual_Jobs;
+      while Utils.Has_Manual_Job loop
+         declare
+            ID : constant Positive := Utils.Get_Manual_Job;
+         begin
+            Jobs.Shift (J => ID, To => Utils.Get_Destination);
+         exception
+            when Constraint_Error => Utils.Error_Message ("Skipping job" & ID'Img);
+         end;
+         Utils.Next_Manual_Job;
+      end loop;
       Jobs.Apply_Recorded_Changes;
    else
       raise Program_Error with "neither automatic nor manual mode";

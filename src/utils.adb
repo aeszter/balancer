@@ -13,6 +13,13 @@ package body Utils is
    -- Debug --
    -----------
 
+   procedure Add_Manual_Job (ID : Positive);
+
+   procedure Add_Manual_Job (ID : Positive) is
+   begin
+      Manual_Jobs.Insert (ID);
+   end Add_Manual_Job;
+
    procedure Debug (Message : String; New_Line : Boolean := True) is
    begin
       if Debug_Enabled then
@@ -41,15 +48,31 @@ package body Utils is
       Debug_Enabled := True;
    end Enable_Debug;
 
-   function Get_Job return Natural is
-   begin
-      return Integer'Value (To_String (Manual_Job));
-   end Get_Job;
-
    function Random return Float_Random.Uniformly_Distributed is
    begin
       return Float_Random.Random (Random_Generator);
    end Random;
+
+   procedure Next_Manual_Job is
+   begin
+      SGE.Utils.ID_Lists.Next (Current_Manual_Job);
+   end Next_Manual_Job;
+
+   function Get_Manual_Job return Positive is
+   begin
+      return SGE.Utils.ID_Lists.Element (Current_Manual_Job);
+   end Get_Manual_Job;
+
+   function Has_Manual_Job return Boolean is
+      use SGE.Utils.ID_Lists;
+   begin
+      return Current_Manual_Job /= No_Element;
+   end Has_Manual_Job;
+
+   procedure Rewind_Manual_Jobs is
+   begin
+      Current_Manual_Job := Manual_Jobs.First;
+   end Rewind_Manual_Jobs;
 
    procedure Trace (Message : String) is
    begin
@@ -108,9 +131,11 @@ package body Utils is
          elsif Argument (Arg) = "-m" or else
            Argument (Arg) = "--manual" then
             Mode := manual;
-            Manual_Job := To_Unbounded_String (Argument (Arg + 1));
             Manual_Destination := To_Unbounded_String (
-                       Ada.Characters.Handling.To_Lower (Argument (Arg + 2)));
+                    Ada.Characters.Handling.To_Lower (Argument (Arg + 1)));
+            for Increment in 2 .. Argument_Count - Arg loop
+               Add_Manual_Job (Integer'Value (Argument (Arg + Increment)));
+            end loop;
             return;
          elsif Argument (Arg) = "-h" or else
            Argument (Arg) = "--help" then
@@ -123,7 +148,7 @@ package body Utils is
                                   & " implies --verbose");
             Ada.Text_IO.Put_Line ("--statistics shows a summary of what has been done");
             Ada.Text_IO.Put_Line ("--policy prints details about decisions taken");
-            Ada.Text_IO.Put_Line ("--manual ID (cpu|gpu|rules) unconditionally puts the given job "
+            Ada.Text_IO.Put_Line ("--manual (cpu|gpu|rules) ID unconditionally puts the given job "
                                  & "into the cpu or gpu queue, or apply rules");
             Ada.Text_IO.Put_Line ("--help shows this message, then terminates");
             POSIX.Process_Primitives.Exit_Process;
