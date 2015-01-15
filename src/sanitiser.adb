@@ -254,6 +254,14 @@ package body Sanitiser is
       return To_String (R.Name);
    end Get_Name;
 
+   function Get_String (L : Multitype) return String is
+   begin
+      if L.Switch /= str then
+         raise Rule_Error with "found " & L.Switch'Img & " but str expected";
+      end if;
+      return To_String (L.String_Value);
+   end Get_String;
+
    procedure Init is
 
       First : Boolean;
@@ -270,7 +278,11 @@ package body Sanitiser is
          else
             Utils.Trace ("elsif");
          end if;
-         D.Condition.Iterate (Print_Operation'Access);
+         if D.Condition.Is_Empty then
+            Utils.Trace (" (true) ");
+         else
+            D.Condition.Iterate (Print_Operation'Access);
+         end if;
          Utils.Trace ("then");
          D.Action.Iterate (Print_Operation'Access);
          First := False;

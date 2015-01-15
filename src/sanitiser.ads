@@ -21,6 +21,7 @@ package Sanitiser is
    procedure Set_String (L : out Multitype; Value : String);
    procedure Set_Bool (L : out Multitype; Value : Boolean);
    procedure Set_Slots (L : out Multitype; Value : Step_Range_List);
+   function Get_String (L : Multitype) return String;
 
    type Operation is private;
    procedure Set_Property (Dest : in out Operation; Prop : Kind);
