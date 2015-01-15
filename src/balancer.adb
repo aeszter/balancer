@@ -28,9 +28,11 @@ begin
       Jobs.Balance;
    elsif Utils.On_Manual then
       Jobs.Shift (J => Utils.Get_Job, To => Utils.Get_Destination);
+      Jobs.Apply_Recorded_Changes;
    else
       raise Program_Error with "neither automatic nor manual mode";
    end if;
+
    Statistics.Print;
    if not Statistics.Is_Pristine then
       Diagnostics.Print;

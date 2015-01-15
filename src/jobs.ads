@@ -16,6 +16,7 @@ package Jobs is
    procedure Init;
    procedure Balance;
    procedure Shift (J : Natural; To : String);
+   procedure Apply_Recorded_Changes;
    function Is_Eligible (J : Job) return Boolean;
    function Queued_For_CPU (J : Job) return Boolean;
    function Queued_For_GPU (J : Job) return Boolean;

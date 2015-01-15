@@ -41,6 +41,12 @@ package body Jobs is
                         Timestamp_Name => Timestamp (J));
    end Apply_Changes;
 
+   procedure Apply_Recorded_Changes is
+   begin
+      Utils.Trace ("Applying changes to" & Modified.Length'Img & " jobs");
+      Modified.Iterate (Apply_Changes'Access);
+   end Apply_Recorded_Changes;
+
 --     procedure Add_Chain_Head (J : Job) is
 --        procedure Test_Hold (ID : Natural);
 --
@@ -81,8 +87,7 @@ package body Jobs is
       Users.Iterate (Balance_CPU_GPU'Access);
 --      Utils.Trace ("Extending slot ranges to more cores");
 --      Chain_Heads.Iterate (Extend_Slots_Above'Access);
-      Utils.Trace ("Applying changes to" & Modified.Length'Img & " jobs");
-      Modified.Iterate (Apply_Changes'Access);
+      Apply_Recorded_Changes;
    end Balance;
 
    procedure Balance_CPU_GPU (J : Job) is
