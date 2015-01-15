@@ -3,7 +3,7 @@ with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 with SGE.Utils;
 
 package Utils is
-   Version : String := "develop";
+   Version : String := "v2.5";
 
    Assumption_Error : exception;
 
