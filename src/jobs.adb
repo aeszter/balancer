@@ -54,6 +54,24 @@ package body Jobs is
       Modified.Iterate (Apply_Changes'Access);
    end Apply_Recorded_Changes;
 
+   procedure Apply_Rules_Only (J : Job) is
+      Item : Changed_Job := Init (ID => Get_ID (J), New_State => undefined, Old_State => undefined);
+   begin
+      if Queued_For_GPU (J) then
+         Item.Old_State := gpu;
+         Item.New_State := gpu;
+      else
+         Item.Old_State := cpu;
+         Item.New_State := cpu;
+      end if;
+      Item.Resources := Get_Hard_Resources (J);
+      Set_Slots (Item, Get_Slot_List (J));
+      Set_PE (Item, Get_PE (J));
+      Sanitiser.Apply_Rules (Item);
+      Modified.Append (Item);
+   end Apply_Rules_Only;
+
+
 --     procedure Add_Chain_Head (J : Job) is
 --        procedure Test_Hold (ID : Natural);
 --
@@ -508,6 +526,8 @@ package body Jobs is
       elsif To = "cpu" then
          Migrate_To_CPU (Find_Job (J));
          Statistics.To_CPU;
+      elsif To = "rules" then
+         Apply_Rules_Only (Find_Job (J));
       else
          raise Constraint_Error with "unknown destination """ & To & """";
       end if;

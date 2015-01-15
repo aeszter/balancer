@@ -123,8 +123,8 @@ package body Utils is
                                   & " implies --verbose");
             Ada.Text_IO.Put_Line ("--statistics shows a summary of what has been done");
             Ada.Text_IO.Put_Line ("--policy prints details about decisions taken");
-            Ada.Text_IO.Put_Line ("--manual ID (cpu|gpu) unconditionally puts the given job "
-                                 & "into the cpu or gpu queue");
+            Ada.Text_IO.Put_Line ("--manual ID (cpu|gpu|rules) unconditionally puts the given job "
+                                 & "into the cpu or gpu queue, or apply rules");
             Ada.Text_IO.Put_Line ("--help shows this message, then terminates");
             POSIX.Process_Primitives.Exit_Process;
          else

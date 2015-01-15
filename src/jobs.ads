@@ -22,6 +22,8 @@ package Jobs is
    function Queued_For_GPU (J : Job) return Boolean;
    procedure Migrate_To_CPU (J : Job);
    procedure Migrate_To_GPU (J : Job);
+   procedure Apply_Rules_Only (J : Job);
+
 --   procedure Reduce_Slots (J : Job; To : String; Runtime : String);
 --   procedure Extend_Slots (J : Job; To : String);
 --   procedure Add_Chain_Head (J : SGE.Jobs.Job);
