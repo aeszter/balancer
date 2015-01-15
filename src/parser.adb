@@ -1,4 +1,5 @@
 with Ada.Characters.Handling;
+with Ada.Strings.Fixed;
 with Ada.Text_IO;
 with Ada.Exceptions; use Ada.Exceptions;
 with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
@@ -64,7 +65,9 @@ package body Parser is
       Slots              : String := "";
       Timestamp_Name     : String)
    is
-      Requirements : Unbounded_String := To_Unbounded_String (ID'Img);
+      Requirements : Unbounded_String := To_Unbounded_String (
+            Ada.Strings.Fixed.Trim (Source => ID'Img,
+                                      Side => Ada.Strings.Left));
       Output       : SGE.Spread_Sheets.Spread_Sheet;
       Timestamp    : constant String := " -ac " & Timestamp_Name & "=" & Utils.Now;
       Exit_Status  : Natural;

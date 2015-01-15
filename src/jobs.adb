@@ -42,7 +42,7 @@ package body Jobs is
       J : constant Changed_Job := Changed_Lists.Element (Position);
    begin
       Parser.Alter_Job (ID => J.ID,
-                        Insecure_Resources => J.Resources.To_String,
+                        Insecure_Resources => Resources.To_Requirement (J.Resources),
                         Slots              => SGE.Ranges.To_SGE_Input (J.Slots),
                         PE                 => To_String (J.PE),
                         Timestamp_Name => Timestamp (J));
@@ -489,6 +489,7 @@ package body Jobs is
 
    procedure Remove_Resource (J : in out Changed_Job; Res : Unbounded_String) is
    begin
+      Utils.Trace ("Removing " & To_String (Res));
       J.Resources.Exclude (Res);
    end Remove_Resource;
 

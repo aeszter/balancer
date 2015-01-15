@@ -385,8 +385,13 @@ package body Sanitiser is
 
    procedure Set_String (L : out Multitype; Value : String) is
    begin
+      if Value (Value'First) /= '"' or else
+        Value (Value'Last) /= '"' then
+         raise Rule_Error with "String not properly quoted: "
+           & Value;
+      end if;
       L.Switch := str;
-      L.String_Value := To_Unbounded_String (Value);
+      L.String_Value := To_Unbounded_String (Value (Value'First + 1 .. Value'Last - 1));
    end Set_String;
 
    procedure Set_To (R : in out Rule; S : State) is
