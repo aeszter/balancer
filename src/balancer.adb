@@ -7,6 +7,7 @@ with Jobs;
 with Partitions;
 with Statistics;
 with SGE.Utils;
+with Sanitiser;
 
 
 procedure Balancer is
@@ -18,6 +19,7 @@ begin
    Utils.Verbose_Message ("SGElib " & SGE.Utils.Version);
    Debug ("Debugging enabled");
 
+   Sanitiser.Init;
    Jobs.Init;
 
    if Utils.On_Automatic then
@@ -25,10 +27,22 @@ begin
 
       Jobs.Balance;
    elsif Utils.On_Manual then
-      Jobs.Shift (J => Utils.Get_Job, To => Utils.Get_Destination);
+      Utils.Rewind_Manual_Jobs;
+      while Utils.Has_Manual_Job loop
+         declare
+            ID : constant Positive := Utils.Get_Manual_Job;
+         begin
+            Jobs.Shift (J => ID, To => Utils.Get_Destination);
+         exception
+            when Constraint_Error => Utils.Error_Message ("Skipping job" & ID'Img);
+         end;
+         Utils.Next_Manual_Job;
+      end loop;
+      Jobs.Apply_Recorded_Changes;
    else
       raise Program_Error with "neither automatic nor manual mode";
    end if;
+
    Statistics.Print;
    if not Statistics.Is_Pristine then
       Diagnostics.Print;

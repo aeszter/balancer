@@ -1,4 +1,5 @@
 with Ada.Characters.Handling;
+with Ada.Strings.Fixed;
 with Ada.Text_IO;
 with Ada.Exceptions; use Ada.Exceptions;
 with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
@@ -58,21 +59,27 @@ package body Parser is
    ---------------
 
    procedure Alter_Job
-     (Job                : SGE.Jobs.Job;
+     (ID                 : Positive;
       Insecure_Resources : String := "";
+      PE                 : String := "";
       Slots              : String := "";
       Timestamp_Name     : String)
    is
-      Requirements : Unbounded_String := To_Unbounded_String (String'(Get_ID (Job)));
+      Requirements : Unbounded_String := To_Unbounded_String (
+            Ada.Strings.Fixed.Trim (Source => ID'Img,
+                                      Side => Ada.Strings.Left));
       Output       : SGE.Spread_Sheets.Spread_Sheet;
       Timestamp    : constant String := " -ac " & Timestamp_Name & "=" & Utils.Now;
       Exit_Status  : Natural;
    begin
-      if Slots /= "" then
-         if To_String (SGE.Jobs.Get_PE (Job)) = "" then
-            raise Jobs.Support_Error with "no PE found";
-         end if;
-         Requirements := Requirements & " -pe " & SGE.Jobs.Get_PE (Job) &
+      if Slots /= "" and then PE = "" then
+         raise Jobs.Support_Error with "no PE found";
+      end if;
+      if PE /= "" and then Slots = "" then
+         raise Jobs.Support_Error with "no slot range found";
+      end if;
+      if PE /= "" then
+         Requirements := Requirements & " -pe " & PE &
                                          " " & Sanitise (Slots);
       end if;
       if Insecure_Resources /= "" then
@@ -122,10 +129,10 @@ package body Parser is
       end if;
    exception
       when E : SGE.Parser.Parser_Error =>
-         Ada.Text_IO.Put_Line ("Could not alter job " & Get_ID (Job));
+         Ada.Text_IO.Put_Line ("Could not alter job" & ID'Img);
          Utils.Verbose_Message ("#" & Exception_Message (E) & "#");
       when E : others =>
-         Ada.Text_IO.Put_Line ("Unknown error in Parser.Alter_Job (" & Get_ID (Job) & "): ");
+         Ada.Text_IO.Put_Line ("Unknown error in Parser.Alter_Job (" & ID'Img & "): ");
          Ada.Text_IO.Put_Line (Exception_Message (E));
    end Alter_Job;
 
