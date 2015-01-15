@@ -366,9 +366,11 @@ package body Jobs is
                                                                   Tag_Name => "qquota_rule"));
       SGE.Parser.Free;
       Utils.Verbose_Message (SGE.Jobs.Count (Not_On_Hold'Access)'Img & " pending jobs");
-      SGE.Jobs.Prune_List (Keep => Is_Eligible'Access);
-      SGE.Jobs.Update_Quota;
-      SGE.Jobs.Iterate (Parser.Add_Pending_Since'Access);
+      if Utils.On_Automatic then
+         SGE.Jobs.Prune_List (Keep => Is_Eligible'Access);
+         SGE.Jobs.Update_Quota;
+         SGE.Jobs.Iterate (Parser.Add_Pending_Since'Access);
+      end if;
       SGE.Jobs.Iterate (Users.Add_Job'Access);
       Chain_Count := 0;
 --      SGE.Jobs.Iterate (Add_Chain_Head'Access);
