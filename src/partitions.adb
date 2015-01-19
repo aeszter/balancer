@@ -40,6 +40,9 @@ package body Partitions is
             return True;
          elsif SGE.Host_Properties.Get_Network (Card.Partition) /= SGE.Resources.none and then
            Integer (Card.Free_Hosts) * Card.Free_Slots >= Minimum_Slots then
+            Utils.Trace ("Found" & Card.Free_Hosts'Img & " nodes with"
+                         & Card.Free_Slots'Img & " free slots in "
+                         & SGE.Host_Properties.To_String (Card.Partition));
             return True;
          else
             return False;
