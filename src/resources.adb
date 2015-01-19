@@ -10,6 +10,9 @@ package body Resources is
       Name, Value : String)
    is
    begin
+      if To.Contains (To_Unbounded_String (Name)) then
+         To.Delete (To_Unbounded_String (Name));
+      end if;
       To.Insert (Key      => To_Unbounded_String (Name),
                  New_Item => New_Resource (Name, Value));
    end Add;
