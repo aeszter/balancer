@@ -2,8 +2,7 @@ with Ada.Text_IO; use Ada.Text_IO;
 with Ada.Command_Line; use Ada.Command_Line;
 with POSIX.Process_Primitives;
 with Ada.Numerics; use Ada.Numerics;
-with GNAT.Calendar.Time_IO; use GNAT.Calendar.Time_IO;
-with Ada.Calendar;
+with Ada.Calendar.Conversions; use Ada.Calendar.Conversions;
 with Ada.Characters.Handling;
 
 
@@ -186,12 +185,9 @@ package body Utils is
 
 
    function Now return String is
-      Raw_Time : constant Picture_String := "%s";
-      -- Result is one hour off compared to date +%s
-      -- as tested on 2013-12-11
-      -- The reason is unknown.
+      Result : constant String := To_Unix_Time (Ada.Calendar.Clock)'Img;
    begin
-      return Image (Date => Ada.Calendar.Clock, Picture => Raw_Time);
+      return Result (2 .. Result'Last);
    end Now;
 
    function To_Number (Num : String) return Integer is
