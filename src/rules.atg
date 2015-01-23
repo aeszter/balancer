@@ -1,0 +1,152 @@
+COMPILER Rules
+
+   subtype String_Ptr is FileIO.String_Ptr;
+
+   pragma Warnings (Off, "redundant parentheses"); -- for generated code
+   pragma Style_Checks (Off);
+
+
+
+CHARACTERS
+   letter = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_".
+   digit = "0123456789".
+   tab = CHR(9).
+   eol = CHR(13).
+   lf = CHR(10).
+   ctrl = CHR(1) .. CHR(31).
+   noQuote = ANY - '"' - ctrl.
+
+TOKENS
+   ident = letter {letter | digit}.
+   number = digit {digit}.
+   string = '"' { noQuote } '"'.
+
+COMMENTS FROM '#' TO lf
+
+IGNORE eol + lf + tab
+
+PRODUCTIONS
+   Rules
+   = One_Rule
+     ';'
+     { One_Rule ';' }.
+
+   One_Rule                            (. R :  Rule;
+                                          name : String_Ptr;
+                                          C : Branch_Chain;
+                                          D : Decision;
+                                          L : Operation_List; .)
+   = Ident<name>                       (. Set_Name (R, name); .)
+     ':' Transition<R>
+     ( BranchChain<C>                  (. Set_Contents (R, C); .)
+     | ActionList<L>                   (. Set_Action (D, L);
+                                          Set_Condition (D, always);
+                                          C.Append (D);
+                                          Set_Contents (R, C); .)
+     )
+     ';'                               (. Add_Rule (R); .).
+
+   Ident<Name : out String_Ptr>
+   = ident                             (. RulesS.Get_Name (RulesS.pos, RulesS.len, Name); .).
+
+   Transition<R : in out  Rule> (. S : Jobs.State; .)
+   = WC_State<S>                       (. Set_From (R, S); .)
+     "->"
+     WC_State<S>                       (. Set_To (R, S); .).
+
+   WC_State<S : out Jobs.State>
+   = State<S>
+     | '*'                             (. S := Jobs.any; .).
+
+   BranchChain<Chain : out  Branch_Chain>
+                                       (. L :  Operation_List;
+                                          D :  Decision; .)
+   = "if"
+     CondList<L>                       (. Set_Condition (D, L); .)
+     "then"
+     ActionList<L>                     (. Set_Action (D, L);
+                                          Chain.Append (D); .)
+     { "elsif"
+     CondList<L>                       (. Set_Condition (D, L); .)
+     "then"
+     ActionList<L>                     (. Set_Action (D, L);
+                                          Chain.Append (D); .)
+     }.
+
+   ActionList<List : out  Operation_List>
+                                       (. A :  Operation; .)
+   = Action<A>                         (. Clear (List);
+                                          List.Append (A); .)
+     { "and" Action<A>                 (. List.Append (A); .)
+     }.
+
+   CondList<List : out  Operation_List>
+                                       (. O :  Operation; .)
+   = Condition<O>                      (. Clear (List);
+                                          List.Append (O); .)
+     { "and" Condition<O>              (. List.Append (O); .)
+     }.
+
+   State<S : out Jobs.State>
+   = "cpu"                             (. S := Jobs.cpu; .)
+     | "gpu"                           (. S := Jobs.gpu; .).
+
+   Condition<C : out Operation>        (. Lit :  Multitype;
+                                          Op :  Operator;
+                                          Prop :  Kind; .)
+   = Property<Prop>                    (. Set_Property (C, Prop); .)
+     RelOp<Op>                         (. Set_Operator (C, Op); .)
+     Literal<Lit>                      (. Set_Literal (C, Lit); .).
+
+   Action<A : out  Operation>          (. Lit :  Multitype;
+                                          Prop :  Kind; .)
+   = ( "add"                           (. Set_Operator (A,  add); .)
+     | "remove"                        (. Set_Operator (A,  remove); .)
+     )
+     Literal<Lit>                      (. Set_Literal (A, Lit); .)
+     ( "to" | "from" )
+     Property<Prop>                    (. Set_Property (A, Prop); .)
+   | "set"                             (. Set_Operator (A,  assign); .)
+     Property<Prop>                    (. Set_Property (A, Prop); .)
+     "to"
+     Literal<Lit>                      (. Set_Literal (A, Lit); .).
+
+   Literal<Lit : out Multitype>        (. S : String_Ptr;
+                                           Num :  Step_Range_List;
+                                           B : Boolean; .)
+   = string                            (. RulesS.Get_Name (RulesS.pos, RulesS.len, S);
+                                           Set_String (Lit, S.all); .)
+     | NumSet<Num>                     (. Set_Slots (Lit, Num); .)
+     | Bool<B>                         (. Set_Bool (Lit, B); .).
+
+   RelOp<Op : out  Operator>
+   = "="                               (. Op :=  equal; .)
+     | "~"                             (. Op :=  matches; .)
+     | "^"                             (. Op :=  intersects; .)
+     | "<"                             (. Op :=  subset; .)
+     | ">"                             (. Op :=  contains; .).
+
+   Property<Prop : out  Kind>
+   = "PE"                              (. Prop :=  PE; .)
+     | "slots"                         (. Prop :=  Slots; .)
+     | "resources"                     (. Prop :=  Resources; .)
+     | "reservation"                   (. Prop :=  Reservation; .).
+
+   Bool<Value : out Boolean>
+   = "on" | "true"                     (. Value := True; .)
+     | "off" | "false"                 (. Value := False; .).
+
+   NumSet<Num : out  Step_Range_List>   (. R :  Step_Range; .)
+   = NumRange<R>                       (. Num.Append (R); .)
+     { "," NumRange<R>                 (. Num.Append (R); .)
+     }.
+
+   NumRange<R : out  Step_Range> (. S : String_Ptr; .)
+   = number                            (. RulesS.Get_Name (RulesS.pos, RulesS.len, S);
+                                         R.Min := Utils.To_Number (S.all);
+                                         R.Max := R.Min; .)
+     [ "-" number                      (. RulesS.Get_Name (RulesS.pos, RulesS.len, S);
+                                         R.Max := Utils.To_Number (S.all); .)
+     ].
+
+END Rules.

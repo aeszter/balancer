@@ -8,18 +8,6 @@ package body Partitions is
    use Partitions.Catalogs;
    use type Ada.Containers.Count_Type;
 
-
-   function New_Card (P : Partition; Free_Slots : Natural)
-                      return Index_Card is
-      Card : Index_Card;
-
-   begin
-      Card.Partition := P.Properties;
-      Card.Free_Hosts := P.Available_Hosts.Length;
-      Card.Free_Slots := Free_Slots;
-      return Card;
-   end New_Card;
-
    function "<" (Left, Right : Index_Card) return Boolean is
       use SGE.Host_Properties;
    begin
@@ -32,6 +20,79 @@ package body Partitions is
       end if;
    end "<";
 
+   function CPU_Available (For_Job      : Job;
+                           Mark_As_Used : Boolean;
+                           Fulfilling   : Selection_Criteria) return Boolean
+   is
+      function Selector (Card : Index_Card) return Boolean;
+
+      Found : Boolean;
+      Minimum_Slots : Positive;
+
+      function Selector (Card : Index_Card) return Boolean is
+         use type SGE.Resources.Network;
+      begin
+         if Card.Free_Slots >= Minimum_Slots then
+            Utils.Trace ("Found a node with" & Card.Free_Slots'Img
+                         & ">=" & Minimum_Slots'Img
+                         & " free slots in "
+                         & SGE.Host_Properties.To_String (Card.Partition));
+            return True;
+         elsif SGE.Host_Properties.Get_Network (Card.Partition) /= SGE.Resources.none and then
+           Integer (Card.Free_Hosts) * Card.Free_Slots >= Minimum_Slots then
+            Utils.Trace ("Found" & Card.Free_Hosts'Img & " nodes with"
+                         & Card.Free_Slots'Img & " free slots in "
+                         & SGE.Host_Properties.To_String (Card.Partition));
+            return True;
+         else
+            return False;
+         end if;
+      end Selector;
+
+   begin
+      case Fulfilling is
+         when Minimum => Minimum_Slots := Get_Minimum_CPU_Slots (For_Job);
+         when Maximum => Minimum_Slots := Get_Maximum_CPU_Slots (For_Job);
+      end case;
+
+      Search_Free_Slots (Selector => Selector'Access,
+                         Mark_As_Used => Mark_As_Used,
+                         Found        => Found);
+      return Found;
+   end CPU_Available;
+
+   function Free_Slots return Natural is
+      procedure Tally (Position : Catalogs.Cursor);
+
+      Total : Natural := 0;
+
+      procedure Tally (Position : Catalogs.Cursor) is
+         Card : constant Index_Card := Key (Position);
+         Count : constant Natural := Element (Position);
+         Local_Slots : constant Natural := Count * Card.Free_Slots;
+      begin
+         Utils.Debug ("Partition: " & SGE.Host_Properties.To_String (Card.Partition)
+                      & Card.Free_Slots'Img & " =>" & Count'Img);
+         Total := Total + Local_Slots;
+      end Tally;
+
+   begin
+      Utils.Debug ("Free slots:");
+      Catalog.Iterate (Tally'Access);
+      return Total;
+   end Free_Slots;
+
+
+   function New_Card (P : Partition; Free_Slots : Natural)
+                      return Index_Card is
+      Card : Index_Card;
+
+   begin
+      Card.Partition := P.Get_Properties;
+      Card.Free_Hosts := P.Get_Available_Hosts;
+      Card.Free_Slots := Free_Slots;
+      return Card;
+   end New_Card;
 
    ----------
    -- Init --
@@ -70,15 +131,14 @@ package body Partitions is
          end Copy_Sub_Partition;
 
       begin
-         if P.Available_Slots.Is_Empty then
-            return;
+         if P.Get_Available_Slots /= 0 then
+            P.Iterate_Available_Slots (Copy_Sub_Partition'Access);
          end if;
-         P.Available_Slots.Iterate (Copy_Sub_Partition'Access);
       end Copy;
 
       procedure Count (Position : Catalogs.Cursor) is
       begin
-         Total := Total + Natural (Key (Position).Free_Hosts);
+         Total := Total + Key (Position).Free_Hosts;
       end Count;
 
       procedure Increment (Card : Index_Card; Count : in out Natural) is
@@ -107,44 +167,6 @@ package body Partitions is
    -- CPU_Available --
    -------------------
 
-   function CPU_Available (For_Job      : Job;
-                           Mark_As_Used : Boolean;
-                           Fulfilling   : Selection_Criteria) return Boolean
-   is
-      function Selector (Card : Index_Card) return Boolean;
-
-      Found : Boolean;
-      Minimum_Slots : Positive;
-
-      function Selector (Card : Index_Card) return Boolean is
-         use type SGE.Resources.Network;
-      begin
-         if Card.Free_Slots >= Minimum_Slots then
-            Utils.Trace ("Found a node with" & Card.Free_Slots'Img
-                         & ">=" & Minimum_Slots'Img
-                         & " free slots in "
-                         & SGE.Host_Properties.To_String (Card.Partition));
-            return True;
-         elsif SGE.Host_Properties.Get_Network (Card.Partition) /= SGE.Resources.none and then
-           Integer (Card.Free_Hosts) * Card.Free_Slots >= Minimum_Slots then
-            return True;
-         else
-            return False;
-         end if;
-      end Selector;
-
-   begin
-      case Fulfilling is
-         when Minimum => Minimum_Slots := Get_Minimum_CPU_Slots (For_Job);
-         when Maximum => Minimum_Slots := Get_Maximum_CPU_Slots (For_Job);
-      end case;
-
-      Search_Free_Slots (Selector => Selector'Access,
-                         Mark_As_Used => Mark_As_Used,
-                         Found        => Found);
-      return Found;
-   end CPU_Available;
-
    -------------------
    -- GPU_Available --
    -------------------
@@ -171,27 +193,6 @@ package body Partitions is
       return Found;
    end GPU_Available;
 
-
-   function Free_Slots return Natural is
-      procedure Tally (Position : Catalogs.Cursor);
-
-      Total : Natural := 0;
-
-      procedure Tally (Position : Catalogs.Cursor) is
-         Card : constant Index_Card := Key (Position);
-         Count : constant Natural := Element (Position);
-         Local_Slots : constant Natural := Count * Card.Free_Slots;
-      begin
-         Utils.Debug ("Partition: " & SGE.Host_Properties.To_String (Card.Partition)
-                      & Card.Free_Slots'Img & " =>" & Count'Img);
-         Total := Total + Local_Slots;
-      end Tally;
-
-   begin
-      Utils.Debug ("Free slots:");
-      Catalog.Iterate (Tally'Access);
-      return Total;
-   end Free_Slots;
 
    procedure Search_Free_Slots (Selector : not null access function (Card : Index_Card) return Boolean;
                                 Mark_As_Used : Boolean;
