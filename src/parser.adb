@@ -13,20 +13,36 @@ with SGE.Context;
 package body Parser is
 
    procedure Add_Pending_Since (J : Job) is
+      function Is_OK (Input : String) return Boolean;
+
       Output : SGE.Spread_Sheets.Spread_Sheet;
-      Params : constant String := Get_ID (J) & " -ac PENDINGSINCE=" & Utils.Now;
+      Add : constant String := Get_ID (J) & " -ac PENDINGSINCE=" & Utils.Now;
+      Remove : constant String := Get_ID (J) & " -dc PENDINGSINCE";
+      Existing : constant String := Get_Context (J, SGE.Context.Pending_Since);
       Exit_Status : Natural;
       pragma Unreferenced (Output);
       -- Can we do something useful with the output?
+
+      function Is_OK (Input : String) return Boolean is
+         Dummy : Integer;
+         pragma Unreferenced (Dummy);
+      begin
+         Dummy := Positive'Value (Input);
+         return True;
+      exception
+         when others =>
+            return False;
+      end Is_OK;
+
    begin
       if On_Hold (J) then
          return;
       end if;
-      if Get_Context (J, SGE.Context.Pending_Since) = "" then
-         if not Utils.Dry_Run ("qalter "  & Params) then
+      if Existing = "" then
+         if not Utils.Dry_Run ("qalter "  & Add) then
             SGE.Parser.Setup_No_XML (Command     => "qalter",
                                      Subpath     => "/bin/linux-x64/",
-                                     Selector    => Params,
+                                     Selector    => Add,
                                      Output      => Output,
                                      Exit_Status => Exit_Status);
             case Exit_Status is
@@ -38,6 +54,23 @@ package body Parser is
                                        & "unhandled in Parser.Add_Pending_Since.");
             end case;
 
+         end if;
+      elsif not Is_OK (Existing) then
+         Utils.Verbose_Message ("removing corrupt timestamp");
+         if not Utils.Dry_Run ("qalter "  & Remove) then
+            SGE.Parser.Setup_No_XML (Command     => "qalter",
+                                     Subpath     => "/bin/linux-x64/",
+                                     Selector    => Remove,
+                                     Output      => Output,
+                                     Exit_Status => Exit_Status);
+            case Exit_Status is
+               when 0 => null; -- OK
+               when 1 => Utils.Verbose_Message ("Exit Status 1, evaluate output (Bug #1849)");
+               when others =>
+                  Utils.Error_Message ("qalter exited with status" & Exit_Status'Img
+                                       & ". This is a bug in the balancer because it is "
+                                       & "unhandled in Parser.Add_Pending_Since.");
+            end case;
          end if;
       end if;
    exception

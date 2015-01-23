@@ -30,6 +30,7 @@ package Jobs is
    function Match (J : Changed_Job; Old_State, New_State : State) return Boolean;
 
    function Get_ID (J : Changed_Job) return String;
+   function Get_ID (J : Changed_Job) return Positive;
    function Get_Reservation (J : Changed_Job) return SGE.Utils.Tri_State;
    function Get_PE (J : Changed_Job) return String;
    function Get_Resources (J : Changed_Job) return SGE.Resources.Hashed_List;

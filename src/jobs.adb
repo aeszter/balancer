@@ -344,6 +344,11 @@ package body Jobs is
       return J.ID'Img;
    end Get_ID;
 
+   function Get_ID (J : Changed_Job) return Positive is
+   begin
+      return J.ID;
+   end;
+
    function Get_PE (J : Changed_Job) return String is
    begin
       return To_String (J.PE);
