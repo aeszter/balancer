@@ -28,10 +28,6 @@ package JSV is
    function To_String (Source : Parameter_List) return String;
 
 private
-   Hard, Soft : Parameter_List;
-   Parallel_Environment : Unbounded_String;
-   Min_Slots, Max_Slots : Positive := 1;
-   Reserve : Boolean := False;
 
    procedure Init_Job_Data;
    --  reset all data fields to sensible default values
@@ -52,8 +48,6 @@ private
    --  Log an error; this goes to the master if it is listening, or to stderr otherwise
    procedure Parse_Parameters (Params : in out Parameter_List; Input : String);
    --  Parse a string of comma-separated parameters into a proper Ordered_Map
-   function Queue return String;
-   --  return the current queue assignment, or "*" if none is given
    procedure Handle_Incoming_Parameter  (Parameter : String; Value : String);
    --  store an incoming parameter (and its value), or ignore it, as needed
    procedure Accept_Job;

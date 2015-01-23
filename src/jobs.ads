@@ -9,6 +9,8 @@ package Jobs is
    subtype Job is SGE.Jobs.Job;
    type Changed_Job is private;
 
+   Empty_Job : constant Changed_Job;
+
    type State is (undefined, cpu, gpu, any);
 
    Support_Error : exception; -- Job is missing a required feature
@@ -45,13 +47,22 @@ package Jobs is
 
 private
    type Changed_Job is record
-      ID : Positive;
+      ID : Natural;
       Reserve : SGE.Utils.Tri_State := SGE.Utils.Undecided;
       Old_State, New_State : State := undefined;
       PE                   : Unbounded_String := Null_Unbounded_String;
       Resources            : SGE.Resources.Hashed_List;
       Slots                : SGE.Ranges.Step_Range_List;
    end record;
+
+   Empty_Job : constant Changed_Job := (ID      => 0,
+                                        Reserve => SGE.Utils.Undecided,
+                                        Old_State => undefined,
+                                        New_State => undefined,
+                                        PE        => Null_Unbounded_String,
+                                        Resources => SGE.Resources.Empty_List,
+                                        Slots     => SGE.Ranges.Empty_Range
+                                       );
 
    function Init (ID : Positive; Old_State, New_State : State) return Changed_Job;
    procedure Set_Slots (J : in out Changed_Job; To : String);

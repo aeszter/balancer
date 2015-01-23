@@ -2,9 +2,11 @@ with Ada.Text_IO; use Ada.Text_IO;
 with Ada.Strings.Fixed; use Ada.Strings.Fixed;
 with Ada.Exceptions; use Ada.Exceptions;
 with JSV; use JSV.Parameter_Lists; use JSV.Resource_Names;
+with Jobs; use Jobs;
 
 package body JSV is
    State : States := undefined;
+   J : Changed_Job;
 
    procedure Accept_Job is
    begin
@@ -135,12 +137,7 @@ package body JSV is
 
    procedure Init_Job_Data is
    begin
-      Hard.Clear;
-      Soft.Clear;
-      Parallel_Environment := Null_Unbounded_String;
-      Min_Slots := 1;
-      Max_Slots := 1;
-      Reserve := False;
+      J := Empty_Job;
    end Init_Job_Data;
 
    procedure Log (Message : String;
@@ -248,18 +245,6 @@ package body JSV is
                         New_Item => To_Unbounded_String (Input (Equals + 1 .. Index_List (Next_Index) - 2)));
       end loop;
    end Parse_Parameters;
-
-   function Queue return String is
-   begin
-      if State /= calculating then
-         raise Not_Ready_Error;
-      else
-         return To_String (Hard.Element (Key => Queue_Key));
-      end if;
-   exception
-      when Constraint_Error =>
-         return "*"; -- no specification found, so any queue is fine
-   end Queue;
 
    procedure Reject_Job (Message : String) is
    begin
