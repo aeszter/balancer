@@ -4,6 +4,7 @@ with Ada.Command_Line; use Ada.Command_Line;
 with Diagnostics;
 with Utils; use Utils;
 with Jobs;
+with JSV;
 with Partitions;
 with Statistics;
 with SGE.Utils;
@@ -12,8 +13,18 @@ with Sanitiser;
 
 procedure Balancer is
    Exit_Unknown_Error : constant Exit_Status := 1;
-
+   My_Name : constant String := Ada.Command_Line.Command_Name;
 begin
+   if My_Name (My_Name'Last - 2 .. My_Name'Last) = "jsv" then
+      JSV.Main_Loop;
+      return;
+   elsif My_Name (My_Name'Last - 7 .. My_Name'Last) /= "balancer" then
+      Utils.Error_Message ("Warning: this executable should be called "
+                           & "either ""jsv"" or ""balancer"". "
+                           & "Running in balancer mode now, "
+                           & "but this behaviour may change.");
+   end if;
+
    Utils.Check_Options;
    Utils.Verbose_Message ("Balancer " & Utils.Version & " by aeszter@mpibpc.mpg.de");
    Utils.Verbose_Message ("SGElib " & SGE.Utils.Version);
