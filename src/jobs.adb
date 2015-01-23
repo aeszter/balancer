@@ -508,10 +508,22 @@ package body Jobs is
       J.Reserve := To_Tri_State (To);
    end Set_Reservation;
 
-   procedure Set_Resources (J : in out Changed_Job; To : Unbounded_String) is
+   procedure Set_Resources (J : in out Changed_Job; To : String) is
+      use Ada.Strings.Fixed;
+
+      Index_List : array (1 .. 256) of Natural;
+      Next_Index : Natural := 1;
    begin
       J.Resources.Clear;
-      Add_Resource (J, To_String (To));
+      Index_List (Next_Index) := 1;
+      while Index_List (Next_Index) < To'Last loop
+         Next_Index := Next_Index + 1;
+         Index_List (Next_Index) := 1 + Index (To (Index_List (Next_Index - 1) .. To'Last), ",");
+         if Index_List (Next_Index) = 1 then
+            Index_List (Next_Index) := To'Last + 2;
+         end if;
+         Add_Resource (J, To (Index_List (Next_Index - 1) .. Index_List (Next_Index) - 2));
+      end loop;
    end Set_Resources;
 
    procedure Set_Slots (J : in out Changed_Job; To : String) is
@@ -523,6 +535,30 @@ package body Jobs is
    begin
       J.Slots := To;
    end Set_Slots;
+
+   procedure Set_Slots_Max (J : in out Changed_Job; To : Positive) is
+      Min : Positive := 1;
+   begin
+      if not J.Slots.Is_Empty then
+         Min := J.Slots.Min;
+         J.Slots.Clear;
+      end if;
+      J.Slots.Append (SGE.Ranges.New_Range (Min  => Min,
+                                 Step => 1,
+                                 Max  => To));
+   end Set_Slots_Max;
+
+   procedure Set_Slots_Min (J : in out Changed_Job; To : Positive) is
+      Max : Positive := 1_024;
+   begin
+      if not J.Slots.Is_Empty then
+         Max := J.Slots.Max;
+         J.Slots.Clear;
+      end if;
+      J.Slots.Append (SGE.Ranges.New_Range (Min  => To,
+                                 Step => 1,
+                                 Max  => Max));
+   end Set_Slots_Min;
 
    procedure Shift (J : Natural; To : String) is
    begin

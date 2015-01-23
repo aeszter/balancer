@@ -39,9 +39,11 @@ package Jobs is
    function Get_Slots (J : Changed_Job) return SGE.Ranges.Step_Range_List;
 
    procedure Set_Slots (J : in out Changed_Job; To : SGE.Ranges.Step_Range_List);
+   procedure Set_Slots_Min (J : in out Changed_Job; To : Positive);
+   procedure Set_Slots_Max (J : in out Changed_Job; To : Positive);
    procedure Set_PE (J : in out Changed_Job; To : Unbounded_String);
    procedure Set_Reservation (J : in out Changed_Job; To : Boolean);
-   procedure Set_Resources (J : in out Changed_Job; To : Unbounded_String);
+   procedure Set_Resources (J : in out Changed_Job; To : String);
    procedure Add_Resource (J : in out Changed_Job; Res : String);
    procedure Remove_Resource (J : in out Changed_Job; Res : Unbounded_String);
 

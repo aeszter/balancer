@@ -92,7 +92,7 @@ package body Sanitiser is
       begin
          case Op is
             when assign =>
-               Set_Resources (J, Value.String_Value);
+               Set_Resources (J, To_String (Value.String_Value));
             when add =>
                Add_Resource (J, Get_String (Value));
             when remove =>

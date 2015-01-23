@@ -1,7 +1,6 @@
 with Ada.Text_IO; use Ada.Text_IO;
 with Ada.Strings.Fixed; use Ada.Strings.Fixed;
 with Ada.Exceptions; use Ada.Exceptions;
-with JSV; use JSV.Parameter_Lists; use JSV.Resource_Names;
 with Jobs; use Jobs;
 
 package body JSV is
@@ -113,22 +112,22 @@ package body JSV is
    procedure Handle_Incoming_Parameter  (Parameter : String; Value : String) is
    begin
       if Parameter = "l_hard" then
-         Parse_Parameters (Hard, Value);
+         Set_Resources (J, Value);
       elsif Parameter = "q_hard" then
-         Hard.Insert (Key => Queue_Key, New_Item => To_Unbounded_String (Value));
+         Log ("Hard queue " & Value & " ignored: not implemented");
       elsif Parameter = "l_soft" then
-         Parse_Parameters (Soft, Value);
+         Log ("Soft resources " & Value & " ignored: not implemented");
       elsif Parameter = "pe_name" then
-         Parallel_Environment := To_Unbounded_String (Value);
+         Set_PE (J, To_Unbounded_String (Value));
       elsif Parameter = "pe_min" then
-         Min_Slots := Positive'Value (Value);
+         Set_Slots_Min (J, Positive'Value (Value));
       elsif Parameter = "pe_max" then
-         Max_Slots := Positive'Value (Value);
+         Set_Slots_Max (J, Positive'Value (Value));
       elsif Parameter = "R" then
          if Value = "y" then
-            Reserve := True;
+            Set_Reservation (J, True);
          elsif Value = "n" then
-            Reserve := False;
+            Set_Reservation (J, False);
          else
             Error ("Could not parse reservation: " & Value);
          end if;
@@ -228,24 +227,6 @@ package body JSV is
          Put_Line (Standard_Error, "Unhandled Exception: " & Exception_Message (E));
    end Main_Loop;
 
-   procedure Parse_Parameters (Params : in out Parameter_List; Input : String) is
-      Index_List : array (1 .. 256) of Natural;
-      Next_Index : Natural := 1;
-      Equals : Natural;
-   begin
-      Index_List (Next_Index) := 1;
-      while Index_List (Next_Index) < Input'Last loop
-         Next_Index := Next_Index + 1;
-         Index_List (Next_Index) := 1 + Index (Input (Index_List (Next_Index - 1) .. Input'Last), ",");
-         if Index_List (Next_Index) = 1 then
-            Index_List (Next_Index) := Input'Last + 2;
-         end if;
-         Equals := Index (Input (Index_List (Next_Index - 1) .. Index_List (Next_Index) - 2), "=");
-         Params.Insert (Key      => To_Bounded_String (Input (Index_List (Next_Index - 1) .. Equals - 1)),
-                        New_Item => To_Unbounded_String (Input (Equals + 1 .. Index_List (Next_Index) - 2)));
-      end loop;
-   end Parse_Parameters;
-
    procedure Reject_Job (Message : String) is
    begin
       Send (Command => result, Param => "STATE REJECT", Value => Message);
@@ -257,20 +238,6 @@ package body JSV is
    begin
       Put_Line (Command'Img & " " & Param & " " & Value);
    end Send;
-
-   function To_String (Source : Parameter_List) return String is
-      Item : Parameter_Lists.Cursor := Source.First;
-      S : Unbounded_String;
-   begin
-      while Item /= Parameter_Lists.No_Element loop
-         S := S & To_String (Key (Item)) & "=" & Element (Item);
-         if Item /= Source.Last then
-            S := S & ",";
-         end if;
-         Next (Item);
-      end loop;
-      return To_String (S);
-   end To_String;
 
 end JSV;
 

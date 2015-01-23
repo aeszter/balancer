@@ -1,6 +1,4 @@
 with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
-with Ada.Strings.Bounded; use Ada.Strings.Bounded;
-with Ada.Containers.Ordered_Maps; use Ada.Containers;
 with Ada.Strings;
 
 package JSV is
@@ -10,22 +8,7 @@ package JSV is
    type Modifiers is (add, modify, delete);
    type Log_Level is (info, warning, error);
 
-   package Resource_Names is new Generic_Bounded_Length (Max => 10);
-   subtype Resource_Name is Resource_Names.Bounded_String;
-   function To_Key (Source : String; Drop : Ada.Strings.Truncation := Ada.Strings.Error)
-                    return Resource_Name
-                    renames Resource_Names.To_Bounded_String;
-   package Parameter_Lists is new Ordered_Maps (Key_Type     => Resource_Name,
-                                                Element_Type => Unbounded_String,
-                                                "<"          => Resource_Names."<");
-   subtype Parameter_List is Parameter_Lists.Map;
-
-   Queue_Key : constant Resource_Name := To_Key ("q");
-   Infiniband_Key : constant Resource_Name := To_Key ("infiniband");
-
    procedure Main_Loop;
-
-   function To_String (Source : Parameter_List) return String;
 
 private
 
@@ -46,8 +29,6 @@ private
    --  Log a message to the master; this is ignored if the master is not listening
    procedure Error (Message : String);
    --  Log an error; this goes to the master if it is listening, or to stderr otherwise
-   procedure Parse_Parameters (Params : in out Parameter_List; Input : String);
-   --  Parse a string of comma-separated parameters into a proper Ordered_Map
    procedure Handle_Incoming_Parameter  (Parameter : String; Value : String);
    --  store an incoming parameter (and its value), or ignore it, as needed
    procedure Accept_Job;
