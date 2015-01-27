@@ -523,6 +523,20 @@ package body Jobs is
       J.Name := To_Unbounded_String (Name);
    end Set_Name;
 
+   procedure Set_New_State (J : in out Changed_Job) is
+   begin
+      if J.Resources.Contains (To_Unbounded_String ("gpu")) then
+         J.New_State := gpu;
+      else
+         J.New_State := cpu;
+      end if;
+   end Set_New_State;
+
+   procedure Set_Old_State (J : in out Changed_Job; To : State) is
+   begin
+      J.Old_State := To;
+   end Set_Old_State;
+
    procedure Set_PE (J : in out Changed_Job; To : Unbounded_String) is
    begin
       J.PE := To;

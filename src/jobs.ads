@@ -52,6 +52,8 @@ package Jobs is
    procedure Add_Resource (J : in out Changed_Job; Res : String);
    procedure Remove_Resource (J : in out Changed_Job; Res : Unbounded_String);
    procedure Set_Name (J : in out Changed_Job; Name : String);
+   procedure Set_Old_State (J : in out Changed_Job; To : State);
+   procedure Set_New_State (J : in out Changed_Job);
 
 private
    type Changed_Job is record

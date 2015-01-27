@@ -171,6 +171,9 @@ package body JSV is
                exit;
          end case;
          if State = calculating then
+            Set_Old_State (J, Jobs.any);
+            Set_New_State (J);
+            Freeze (J);
             Decide_On_Job;
             State := result_sent;
          end if;
