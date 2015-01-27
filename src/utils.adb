@@ -201,6 +201,11 @@ package body Utils is
       Ada.Text_IO.Open (File => Message_File,
                         Mode => Append_File,
                         Name => Name);
+   exception
+      when Name_Error =>
+         Ada.Text_IO.Create (File => Message_File,
+                             Mode => Append_File,
+                             Name => Name);
    end Open_Message_File;
 
 

@@ -51,5 +51,5 @@ private
    Manual_Destination : Unbounded_String;
    Manual_Jobs      : SGE.Utils.ID_List;
    Current_Manual_Job : SGE.Utils.ID_Lists.Cursor;
-   Message_File     : Ada.Text_IO.File_Type := Ada.Text_IO.Standard_Output;
+   Message_File     : Ada.Text_IO.File_Type;
 end Utils;
