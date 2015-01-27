@@ -19,6 +19,10 @@ package Jobs is
    procedure Balance;
    procedure Shift (J : Natural; To : String);
    procedure Apply_Recorded_Changes;
+   procedure Freeze (J : in out Changed_Job); -- Call this after the original
+                                              -- job's parameters are stored in J;
+                                              -- any subsequent change means Is_Changed returns True
+   function Is_Changed (J : Changed_Job) return Boolean;
    function Is_Eligible (J : Job) return Boolean;
    function Queued_For_CPU (J : Job) return Boolean;
    function Queued_For_GPU (J : Job) return Boolean;
@@ -55,6 +59,7 @@ private
       PE                   : Unbounded_String := Null_Unbounded_String;
       Resources            : SGE.Resources.Hashed_List;
       Slots                : SGE.Ranges.Step_Range_List;
+      Changed              : Boolean;
    end record;
 
    Empty_Job : constant Changed_Job := (ID      => 0,
@@ -63,7 +68,8 @@ private
                                         New_State => undefined,
                                         PE        => Null_Unbounded_String,
                                         Resources => SGE.Resources.Empty_List,
-                                        Slots     => SGE.Ranges.Empty_Range
+                                        Slots     => SGE.Ranges.Empty_Range,
+                                        Changed   => False
                                        );
 
    function Init (ID : Positive; Old_State, New_State : State) return Changed_Job;

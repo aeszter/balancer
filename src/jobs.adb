@@ -36,6 +36,7 @@ package body Jobs is
       Value     : constant String := Res (Separator + 1 .. Res'Last);
    begin
       Resources.Add (To => J.Resources, Name => Name, Value => Value);
+      J.Changed := True;
    end Add_Resource;
 
    procedure Apply_Changes (Position : Changed_Lists.Cursor) is
@@ -339,6 +340,11 @@ package body Jobs is
 --                                 & Exception_Message (E));
 --     end Extend_Slots_Below;
 
+   procedure Freeze (J : in out Changed_Job) is
+   begin
+      J.Changed := False;
+   end Freeze;
+
    function Get_ID (J : Changed_Job) return String is
    begin
       return J.ID'Img;
@@ -423,6 +429,10 @@ package body Jobs is
    -------------
    -- Balance --
    -------------
+   function Is_Changed (J : Changed_Job) return Boolean is
+   begin
+      return J.Changed;
+   end Is_Changed;
 
    function Is_Eligible (J : Job) return Boolean is
    begin
@@ -496,11 +506,13 @@ package body Jobs is
    begin
       Utils.Trace ("Removing " & To_String (Res));
       J.Resources.Exclude (Res);
+      J.Changed := True;
    end Remove_Resource;
 
    procedure Set_PE (J : in out Changed_Job; To : Unbounded_String) is
    begin
       J.PE := To;
+      J.Changed := True;
    end Set_PE;
 
    procedure Set_Reservation (J : in out Changed_Job; To : Boolean) is
@@ -524,16 +536,19 @@ package body Jobs is
          end if;
          Add_Resource (J, To (Index_List (Next_Index - 1) .. Index_List (Next_Index) - 2));
       end loop;
+      J.Changed := True;
    end Set_Resources;
 
    procedure Set_Slots (J : in out Changed_Job; To : String) is
    begin
       J.Slots := SGE.Ranges.To_Step_Range_List (To);
+      J.Changed := True;
    end Set_Slots;
 
    procedure Set_Slots (J : in out Changed_Job; To : SGE.Ranges.Step_Range_List) is
    begin
       J.Slots := To;
+      J.Changed := True;
    end Set_Slots;
 
    procedure Set_Slots_Max (J : in out Changed_Job; To : Positive) is
@@ -546,6 +561,7 @@ package body Jobs is
       J.Slots.Append (SGE.Ranges.New_Range (Min  => Min,
                                  Step => 1,
                                  Max  => To));
+      J.Changed := True;
    end Set_Slots_Max;
 
    procedure Set_Slots_Min (J : in out Changed_Job; To : Positive) is
@@ -558,6 +574,7 @@ package body Jobs is
       J.Slots.Append (SGE.Ranges.New_Range (Min  => To,
                                  Step => 1,
                                  Max  => Max));
+      J.Changed := True;
    end Set_Slots_Min;
 
    procedure Shift (J : Natural; To : String) is
