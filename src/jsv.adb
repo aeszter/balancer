@@ -2,6 +2,7 @@ with Ada.Text_IO; use Ada.Text_IO;
 with Ada.Strings.Fixed; use Ada.Strings.Fixed;
 with Ada.Exceptions; use Ada.Exceptions;
 with Jobs; use Jobs;
+with Utils;
 
 package body JSV is
    State : States := undefined;
@@ -28,37 +29,6 @@ package body JSV is
       null;
    end Decide_On_Job;
 
-   procedure Error (Message : String) is
-      procedure Error_To_Server;
-      procedure Error_To_Stderr;
-
-      procedure Error_To_Server is
-      begin
-         Put_Line ("ERROR " & Message);
-      end Error_To_Server;
-
-      procedure Error_To_Stderr is
-      begin
-         Put_Line (File => Standard_Error,
-                   Item => "Error: " & Message);
-         raise Program_Error;
-      end Error_To_Stderr;
-
-   begin
-      case State is
-         when undefined =>
-            Error_To_Stderr;
-         when starting =>
-            Error_To_Server;
-         when started =>
-            Error_To_Stderr;
-         when result_sent =>
-            Error_To_Stderr;
-         when calculating =>
-            Error_To_Server;
-      end case;
-   end Error;
-
    procedure Get_Next_Command (Command : out Server_Commands;
                                Parameter : out Unbounded_String;
                                Value : out Unbounded_String;
@@ -66,7 +36,7 @@ package body JSV is
    begin
       if State = starting or else
         State = calculating then
-         Error (Message => "Get_Next_Command called in state """ & State'Img & """");
+         Utils.Error_Message ("Get_Next_Command called in state """ & State'Img & """");
       else
          declare
             Line : constant String := Get_Line;
@@ -114,9 +84,9 @@ package body JSV is
       if Parameter = "l_hard" then
          Set_Resources (J, Value);
       elsif Parameter = "q_hard" then
-         Log ("Hard queue " & Value & " ignored: not implemented");
+         Utils.Verbose_Message ("Hard queue " & Value & " ignored: not implemented");
       elsif Parameter = "l_soft" then
-         Log ("Soft resources " & Value & " ignored: not implemented");
+         Utils.Verbose_Message ("Soft resources " & Value & " ignored: not implemented");
       elsif Parameter = "pe_name" then
          Set_PE (J, To_Unbounded_String (Value));
       elsif Parameter = "pe_min" then
@@ -129,7 +99,7 @@ package body JSV is
          elsif Value = "n" then
             Set_Reservation (J, False);
          else
-            Error ("Could not parse reservation: " & Value);
+            Utils.Error_Message ("Could not parse reservation: " & Value);
          end if;
       end if;
    end Handle_Incoming_Parameter;
@@ -139,45 +109,13 @@ package body JSV is
       J := Empty_Job;
    end Init_Job_Data;
 
-   procedure Log (Message : String;
-                  Level   : Log_Level := info) is
-
-      procedure Log_To_Stderr;
-      procedure Log_To_Server;
-
-      procedure Log_To_Server is
-      begin
-         Put_Line ("LOG " & Level'Img & " " & Message);
-      end Log_To_Server;
-
-      procedure Log_To_Stderr is
-      begin
-         null;
-         --  output to stderr seems to prevent the job from being accepted
-         --  Put_Line (File => Standard_Error,
-         --           Item => Level'Img & ": " & Message);
-      end Log_To_Stderr;
-
-   begin
-      case State is
-         when undefined =>
-            Log_To_Stderr;
-         when starting =>
-            Log_To_Server;
-         when started =>
-            Log_To_Stderr;
-         when result_sent =>
-            Log_To_Stderr;
-         when calculating =>
-            Log_To_Server;
-      end case;
-   end Log;
-
    procedure Main_Loop is
       Cmd : Server_Commands;
       Val, Parameter : Unbounded_String;
       Modifier       : Modifiers;
    begin
+      Utils.Open_Message_File ("/var/log/jsv.log");
+      Sanitiser.Init;
       loop
          Get_Next_Command (Command     => Cmd,
                            Parameter   => Parameter,
@@ -192,7 +130,7 @@ package body JSV is
                   Send (Command => started);
                   State := started;
                else
-                  Error ("Got ""START"" in state """ & State'Img & """");
+                  Utils.Error_Message ("Got ""START"" in state """ & State'Img & """");
                   State := undefined; -- should never get here
                end if;
             when param =>
@@ -200,19 +138,19 @@ package body JSV is
                   Handle_Incoming_Parameter (Parameter => To_String (Parameter),
                                              Value     => To_String (Val));
                else
-                  Error ("Got ""PARAM"" in state """ & State'Img & """");
+                  Utils.Error_Message ("Got ""PARAM"" in state """ & State'Img & """");
                end if;
             when verify =>
                if State = started then
                   State := calculating;
                else
-                  Error ("Got ""BEGIN"" in state """ & State'Img & """");
+                  Utils.Error_Message ("Got ""BEGIN"" in state """ & State'Img & """");
                end if;
             when env =>
                if State = started then
                   null; -- ignore for now
                else
-                  Error ("Got ""ENV"" in state """ & State'Img & """");
+                  Utils.Error_Message ("Got ""ENV"" in state """ & State'Img & """");
                end if;
             when quit =>
                exit;

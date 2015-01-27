@@ -6,7 +6,6 @@ package JSV is
    type Server_Commands is (start, param, verify, env, quit);
    type JSV_Commands is (send_env, started, param, result, error, log, env);
    type Modifiers is (add, modify, delete);
-   type Log_Level is (info, warning, error);
 
    procedure Main_Loop;
 
@@ -24,11 +23,6 @@ private
                    Param   : String := "";
                    Value   : String := "");
    --  Send one command to the master
-   procedure Log (Message : String;
-                  Level   : Log_Level := info);
-   --  Log a message to the master; this is ignored if the master is not listening
-   procedure Error (Message : String);
-   --  Log an error; this goes to the master if it is listening, or to stderr otherwise
    procedure Handle_Incoming_Parameter  (Parameter : String; Value : String);
    --  store an incoming parameter (and its value), or ignore it, as needed
    procedure Accept_Job;
