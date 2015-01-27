@@ -71,6 +71,7 @@ package body Sanitiser is
          case Op is
             when assign =>
                Set_PE (J, Value.String_Value);
+               Utils.Trace ("PE := " & To_String (Value.String_Value));
             when others =>
                raise Rule_Error with "unsupported operator " & Op'Img &
                " in Apply_to_PE";
@@ -82,6 +83,7 @@ package body Sanitiser is
          case Op is
             when assign =>
                Set_Reservation (J, Value.Bool_Value);
+               Utils.Trace ("R := " & Value.Bool_Value'Img);
             when others =>
                raise Rule_Error with "unsupported operator " & Op'Img &
                " in Apply_to_Reservation";
@@ -93,10 +95,13 @@ package body Sanitiser is
          case Op is
             when assign =>
                Set_Resources (J, To_String (Value.String_Value));
+               Utils.Trace ("Res := " & To_String (Value.String_Value));
             when add =>
                Add_Resource (J, Get_String (Value));
+               Utils.Trace ("Res += " & To_String (Value.String_Value));
             when remove =>
                Remove_Resource (J, Value.String_Value);
+               Utils.Trace ("Res -= " & To_String (Value.String_Value));
             when others =>
                raise Rule_Error with "unsupported operator " & Op'Img &
                " in Apply_to_Resources";
@@ -108,6 +113,7 @@ package body Sanitiser is
          case Op is
             when assign =>
                Set_Slots (J, Value.Slot_Value);
+               Utils.Trace ("Slots := " & SGE.Ranges.To_String (Value.Slot_Value, Short => True));
             when others =>
                raise Rule_Error with "unsupported operator " & Op'Img &
                " in Apply_to_Slots";

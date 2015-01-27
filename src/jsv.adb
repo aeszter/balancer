@@ -83,7 +83,7 @@ package body JSV is
             end case;
          exception
             when E : Constraint_Error =>
-               Put_Line (Standard_Error, Exception_Message (E) & " at " & Line (Prev_Index .. Next_Index - 1));
+               Utils.Error_Message (Exception_Message (E) & " at " & Line (Prev_Index .. Next_Index - 1));
          end;
       end if;
    end Get_Next_Command;
@@ -123,7 +123,6 @@ package body JSV is
       Val, Parameter : Unbounded_String;
       Modifier       : Modifiers;
    begin
-      Utils.Open_Message_File ("/var/log/jsv.log");
       Sanitiser.Init;
       loop
          Get_Next_Command (Command     => Cmd,
@@ -171,7 +170,7 @@ package body JSV is
       end loop;
    exception
       when E : others =>
-         Put_Line (Standard_Error, "Unhandled Exception: " & Exception_Message (E));
+         Utils.Error_Message ("Unhandled Exception: " & Exception_Message (E));
    end Main_Loop;
 
    procedure Reject_Job (Message : String) is
