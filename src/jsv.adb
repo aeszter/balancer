@@ -2,11 +2,14 @@ with Ada.Text_IO; use Ada.Text_IO;
 with Ada.Strings.Fixed; use Ada.Strings.Fixed;
 with Ada.Exceptions; use Ada.Exceptions;
 with Jobs; use Jobs;
+with Sanitiser;
 with Utils;
+with SGE.Resources;
+with SGE.Utils;
 
 package body JSV is
    State : States := undefined;
-   J : Changed_Job;
+   J     : Changed_Job;
 
    procedure Accept_Job is
    begin
@@ -26,7 +29,13 @@ package body JSV is
 
    procedure Decide_On_Job is
    begin
-      null;
+      Sanitiser.Apply_Rules (J);
+      if Is_Changed (J) then
+         Send_Changes;
+         Change_Job;
+      else
+         Accept_Job;
+      end if;
    end Decide_On_Job;
 
    procedure Get_Next_Command (Command : out Server_Commands;
@@ -176,6 +185,21 @@ package body JSV is
    begin
       Put_Line (Command'Img & " " & Param & " " & Value);
    end Send;
+
+   procedure Send_Changes is
+      use SGE.Utils;
+   begin
+      Utils.Verbose_Message ("Not applying changes to job " & Get_ID (J));
+      Utils.Verbose_Message ("PARAM pe_name " & Get_PE (J));
+      Utils.Verbose_Message ("PARAM pe_min " & Get_Slots (J).Min'Img);
+      Utils.Verbose_Message ("PARAM pe_max " & Get_Slots (J).Max'Img);
+      if Get_Reservation (J) = True then
+         Utils.Verbose_Message ("PARAM R y");
+      elsif Get_Reservation (J) = False then
+         Utils.Verbose_Message ("PARAM R n");
+      end if;
+      Utils.Verbose_Message ("PARAM l_hard " & SGE.Resources.To_String (Get_Resources (J)));
+   end Send_Changes;
 
 end JSV;
 

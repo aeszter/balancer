@@ -23,6 +23,7 @@ private
                    Param   : String := "";
                    Value   : String := "");
    --  Send one command to the master
+   procedure Send_Changes; -- send necessary changes to master
    procedure Handle_Incoming_Parameter  (Parameter : String; Value : String);
    --  store an incoming parameter (and its value), or ignore it, as needed
    procedure Accept_Job;
