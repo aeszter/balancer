@@ -197,11 +197,15 @@ package body JSV is
 
    procedure Send_Changes is
       use SGE.Utils;
+
+      PE : constant String := Get_PE (J);
    begin
-      Utils.Verbose_Message ("Not applying changes to job " & Get_ID (J));
-      Utils.Verbose_Message ("PARAM pe_name " & Get_PE (J));
-      Utils.Verbose_Message ("PARAM pe_min " & Get_Slots (J).Min'Img);
-      Utils.Verbose_Message ("PARAM pe_max " & Get_Slots (J).Max'Img);
+      Utils.Verbose_Message ("Not applying changes to job " & Get_Name (J));
+      if PE /= "" then
+         Utils.Verbose_Message ("PARAM pe_name " & Get_PE (J));
+         Utils.Verbose_Message ("PARAM pe_min " & Get_Slots (J).Min'Img);
+         Utils.Verbose_Message ("PARAM pe_max " & Get_Slots (J).Max'Img);
+      end if;
       if Get_Reservation (J) = True then
          Utils.Verbose_Message ("PARAM R y");
       elsif Get_Reservation (J) = False then
