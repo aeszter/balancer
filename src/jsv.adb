@@ -36,6 +36,11 @@ package body JSV is
       else
          Accept_Job;
       end if;
+   exception
+      when E : others =>
+         Utils.Error_Message (Exception_Message (E) & " while processing job " & Get_ID (J));
+         Utils.Error_Message ("accepting job");
+         Accept_Job;
    end Decide_On_Job;
 
    procedure Get_Next_Command (Command : out Server_Commands;
@@ -110,6 +115,8 @@ package body JSV is
          else
             Utils.Error_Message ("Could not parse reservation: " & Value);
          end if;
+      elsif Parameter = "N" then
+         Set_Name (J, Value);
       end if;
    end Handle_Incoming_Parameter;
 

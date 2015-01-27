@@ -348,12 +348,21 @@ package body Jobs is
    function Get_ID (J : Changed_Job) return String is
    begin
       return J.ID'Img;
+   exception
+      when Constraint_Error =>
+         -- ID 0 (unset)
+         return "";
    end Get_ID;
 
    function Get_ID (J : Changed_Job) return Positive is
    begin
       return J.ID;
-   end;
+   end Get_ID;
+
+   function Get_Name (J : Changed_Job) return String is
+   begin
+      return To_String (J.Name);
+   end Get_Name;
 
    function Get_PE (J : Changed_Job) return String is
    begin
@@ -508,6 +517,11 @@ package body Jobs is
       J.Resources.Exclude (Res);
       J.Changed := True;
    end Remove_Resource;
+
+   procedure Set_Name (J : in out Changed_Job; Name : String) is
+   begin
+      J.Name := To_Unbounded_String (Name);
+   end Set_Name;
 
    procedure Set_PE (J : in out Changed_Job; To : Unbounded_String) is
    begin

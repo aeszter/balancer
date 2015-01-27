@@ -37,6 +37,7 @@ package Jobs is
 
    function Get_ID (J : Changed_Job) return String;
    function Get_ID (J : Changed_Job) return Positive;
+   function Get_Name (J : Changed_Job) return String;
    function Get_Reservation (J : Changed_Job) return SGE.Utils.Tri_State;
    function Get_PE (J : Changed_Job) return String;
    function Get_Resources (J : Changed_Job) return SGE.Resources.Hashed_List;
@@ -50,6 +51,7 @@ package Jobs is
    procedure Set_Resources (J : in out Changed_Job; To : String);
    procedure Add_Resource (J : in out Changed_Job; Res : String);
    procedure Remove_Resource (J : in out Changed_Job; Res : Unbounded_String);
+   procedure Set_Name (J : in out Changed_Job; Name : String);
 
 private
    type Changed_Job is record
@@ -60,6 +62,7 @@ private
       Resources            : SGE.Resources.Hashed_List;
       Slots                : SGE.Ranges.Step_Range_List;
       Changed              : Boolean;
+      Name                 : Unbounded_String;
    end record;
 
    Empty_Job : constant Changed_Job := (ID      => 0,
@@ -69,7 +72,8 @@ private
                                         PE        => Null_Unbounded_String,
                                         Resources => SGE.Resources.Empty_List,
                                         Slots     => SGE.Ranges.Empty_Range,
-                                        Changed   => False
+                                        Changed   => False,
+                                        Name      => Null_Unbounded_String
                                        );
 
    function Init (ID : Positive; Old_State, New_State : State) return Changed_Job;

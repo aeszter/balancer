@@ -140,7 +140,7 @@ package body Sanitiser is
    end Apply_Branch_Chain;
 
    procedure Apply_Rules (J : in out Changed_Job) is
-      ID : Natural := 0;
+      ID : constant String := Get_ID (J);
 
       procedure Apply_Rule (Position : Rule_Lists.Cursor);
 
@@ -155,20 +155,13 @@ package body Sanitiser is
          end if;
       end Apply_Rule;
    begin
-      ID := Get_ID (J); -- do not move to declarative part:
-                        -- we could miss exceptions raised by Get_ID.
-      Utils.Trace ("Applying rules to" & ID'Img);
+      Utils.Trace ("Applying rules to" & ID);
       Rules.Iterate (Apply_Rule'Access);
    exception
-      when E: others =>
-         if ID = 0 then
-            Utils.Error_Message ("Exception encountered while applying rules to defective job: "
+      when E : others =>
+         Utils.Error_Message ("Exception encountered while applying rules to job"
+                                 & ID & ": "
                                  & Exception_Message (E));
-         else
-            Utils.Error_Message ("Exception encountered while applying rules to job"
-                                 & ID'Img & ": "
-                                 & Exception_Message (E));
-         end if;
    end Apply_Rules;
 
    function Check_PE (J : Changed_Job; Op : Operator; Value : Multitype) return Boolean is
