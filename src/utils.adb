@@ -97,7 +97,7 @@ package body Utils is
       Put_Line (Message);
       if Bug_ID /= 0 then
          Put_Line ("See Bug" & Bug_ID'Img
-                   & ": http://ram/bugzilla/show_bug.cgi?id=" & Bug_ID'Img);
+                   & ": http://s1050-z/bugzilla/show_bug.cgi?id=" & Bug_ID'Img);
       end if;
    end Error_Message;
 

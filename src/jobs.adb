@@ -21,7 +21,7 @@ with Sanitiser;
 
 
 package body Jobs is
-   Chain_Count : Natural;
+--   Chain_Count : Natural;
 
    procedure Balance_CPU_GPU (J : Job);
    function Comma_Convert (Encoded_String : String) return String;
@@ -417,7 +417,7 @@ package body Jobs is
          SGE.Jobs.Iterate (Parser.Add_Pending_Since'Access);
       end if;
       SGE.Jobs.Iterate (Users.Add_Job'Access);
-      Chain_Count := 0;
+--      Chain_Count := 0;
 --      SGE.Jobs.Iterate (Add_Chain_Head'Access);
       Utils.Verbose_Message (SGE.Jobs.Count (Not_On_Hold'Access)'Img
                              & " by" & Users.Total_Users'Img
@@ -435,9 +435,6 @@ package body Jobs is
       return J;
    end Init;
 
-   -------------
-   -- Balance --
-   -------------
    function Is_Changed (J : Changed_Job) return Boolean is
    begin
       return J.Changed;
