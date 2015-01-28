@@ -21,36 +21,6 @@ package body Diagnostics is
       Put_Line ("");
    end Print;
 
-
-   ----------------
-   -- To_Seconds --
-   ----------------
-
-   function To_Seconds (T : Tick_Count) return Seconds is
-   begin
-      return Seconds (T) / Seconds (Ticks_Per_Second);
-   end To_Seconds;
-
-
-   ---------------------------------------------------------------------------
-   -- Put_Time ---------------------------------------------------------------
-   --  Purpose: Put User and CPU times for both self and children to Standard Out
-   --  Parameters: none
-   ---------------------------------------------------------------------------
-
-   procedure Put_Time is
-      Times : Process_Times;
-      Self  : Seconds;
-      Children : Seconds;
-   begin
-      Times := Get_Process_Times;
-      Self := To_Seconds (User_CPU_Time_Of (Times) + System_CPU_Time_Of (Times));
-      Children := To_Seconds (Descendants_User_CPU_Time_Of (Times)
-                   + Descendants_System_CPU_Time_Of (Times));
-      Put_Line (Self'Img & "s self " & Children'Img & "s children");
-   end Put_Time;
-
-
    procedure Put_Memory is
       Status_File : Ada.Text_IO.File_Type;
       Line        : String (1 .. 256);
@@ -71,5 +41,22 @@ package body Diagnostics is
       end loop;
       Close (Status_File);
    end Put_Memory;
+
+   procedure Put_Time is
+      Times : Process_Times;
+      Self  : Seconds;
+      Children : Seconds;
+   begin
+      Times := Get_Process_Times;
+      Self := To_Seconds (User_CPU_Time_Of (Times) + System_CPU_Time_Of (Times));
+      Children := To_Seconds (Descendants_User_CPU_Time_Of (Times)
+                   + Descendants_System_CPU_Time_Of (Times));
+      Put_Line (Self'Img & "s self " & Children'Img & "s children");
+   end Put_Time;
+
+   function To_Seconds (T : Tick_Count) return Seconds is
+   begin
+      return Seconds (T) / Seconds (Ticks_Per_Second);
+   end To_Seconds;
 
 end Diagnostics;

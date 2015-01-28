@@ -12,6 +12,11 @@ with SGE.Context;
 
 package body Parser is
 
+   function Sanitise (Input : String) return String;
+   -- Note: this function is security-critical
+   -- Make sure to call this on all data read from Context and passed to
+   -- qalter (or other shell commands)
+
    procedure Add_Pending_Since (J : Job) is
       function Is_OK (Input : String) return Boolean;
 
@@ -81,11 +86,6 @@ package body Parser is
          Ada.Text_IO.Put_Line ("Unknown error in Parser.Add_Pending_Since (" & Get_ID (J) & "): ");
          Ada.Text_IO.Put_Line (Exception_Message (E));
    end Add_Pending_Since;
-
-   function Sanitise (Input : String) return String;
-   -- Note: this function is security-critical
-   -- Make sure to call this on all data read from Context and passed to
-   -- qalter (or other shell commands)
 
    ---------------
    -- Alter_Job --

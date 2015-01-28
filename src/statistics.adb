@@ -5,6 +5,10 @@ package body Statistics is
    function No_Slots return Natural;
    procedure Increment (What : in out Natural);
 
+   procedure Aimless_Job is
+   begin
+      Increment (Global_Stats.Aimless);
+   end Aimless_Job;
 
    procedure Increment (What : in out Natural) is
    begin
@@ -16,6 +20,21 @@ package body Statistics is
    begin
       return Pristine;
    end Is_Pristine;
+
+   procedure No_CPU is
+   begin
+      Increment (Global_Stats.No_CPU_Slots);
+   end No_CPU;
+
+   procedure No_GPU is
+   begin
+      Increment (Global_Stats.No_GPU_Slots);
+   end No_GPU;
+
+   function No_Slots return Natural is
+   begin
+      return Global_Stats.No_CPU_Slots + Global_Stats.No_GPU_Slots;
+   end No_Slots;
 
    -----------
    -- Print --
@@ -55,6 +74,17 @@ package body Statistics is
       end if;
    end Print;
 
+   procedure Quota_Inhibited (ID : Positive) is
+   begin
+      Global_Stats.Quota.Include (ID);
+      Pristine := False;
+   end Quota_Inhibited;
+
+   procedure Recent_Job is
+   begin
+      Increment (Global_Stats.Recent);
+   end Recent_Job;
+
    ------------
    -- To_CPU --
    ------------
@@ -63,11 +93,6 @@ package body Statistics is
    begin
       Increment (Global_Stats.To_CPU);
    end To_CPU;
-
-   procedure No_CPU is
-   begin
-      Increment (Global_Stats.No_CPU_Slots);
-   end No_CPU;
 
    ------------
    -- To_GPU --
@@ -78,33 +103,4 @@ package body Statistics is
       Increment (Global_Stats.To_GPU);
    end To_GPU;
 
-   procedure No_GPU is
-   begin
-      Increment (Global_Stats.No_GPU_Slots);
-   end No_GPU;
-
-   procedure Quota_Inhibited (ID : Positive) is
-   begin
-      Global_Stats.Quota.Include (ID);
-      Pristine := False;
-   end Quota_Inhibited;
-
-   -----------------
-   -- Aimless_Job --
-   -----------------
-
-   procedure Aimless_Job is
-   begin
-      Increment (Global_Stats.Aimless);
-   end Aimless_Job;
-
-   procedure Recent_Job is
-   begin
-      Increment (Global_Stats.Recent);
-   end Recent_Job;
-
-   function No_Slots return Natural is
-   begin
-      return Global_Stats.No_CPU_Slots + Global_Stats.No_GPU_Slots;
-   end No_Slots;
 end Statistics;

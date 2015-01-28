@@ -82,21 +82,27 @@ package body Partitions is
       return Total;
    end Free_Slots;
 
+   function GPU_Available (Mark_As_Used : Boolean) return Boolean is
+      function Selector (Card : Index_Card) return Boolean;
 
-   function New_Card (P : Partition; Free_Slots : Natural)
-                      return Index_Card is
-      Card : Index_Card;
+      function Selector (Card : Index_Card) return Boolean is
+      begin
+         if SGE.Host_Properties.Has_GPU (Card.Partition) then
+            Utils.Trace ("Found a node with a GPU and" & Card.Free_Slots'Img
+                         & " free slots in "
+                         & SGE.Host_Properties.To_String (Card.Partition));
+         end if;
+         return SGE.Host_Properties.Has_GPU (Card.Partition);
+      end Selector;
+
+      Found : Boolean;
 
    begin
-      Card.Partition := P.Get_Properties;
-      Card.Free_Hosts := P.Get_Available_Hosts;
-      Card.Free_Slots := Free_Slots;
-      return Card;
-   end New_Card;
-
-   ----------
-   -- Init --
-   ----------
+      Search_Free_Slots (Selector => Selector'Access,
+                         Mark_As_Used => Mark_As_Used,
+                         Found        => Found);
+      return Found;
+   end GPU_Available;
 
    procedure Init is
       procedure Copy (P : Partition);
@@ -163,36 +169,17 @@ package body Partitions is
       Utils.Debug ("<-- Partitions.Init");
    end Init;
 
-   -------------------
-   -- CPU_Available --
-   -------------------
 
-   -------------------
-   -- GPU_Available --
-   -------------------
-
-   function GPU_Available (Mark_As_Used : Boolean) return Boolean is
-      function Selector (Card : Index_Card) return Boolean;
-
-      function Selector (Card : Index_Card) return Boolean is
-      begin
-         if SGE.Host_Properties.Has_GPU (Card.Partition) then
-            Utils.Trace ("Found a node with a GPU and" & Card.Free_Slots'Img
-                         & " free slots in "
-                         & SGE.Host_Properties.To_String (Card.Partition));
-         end if;
-         return SGE.Host_Properties.Has_GPU (Card.Partition);
-      end Selector;
-
-      Found : Boolean;
+   function New_Card (P : Partition; Free_Slots : Natural)
+                      return Index_Card is
+      Card : Index_Card;
 
    begin
-      Search_Free_Slots (Selector => Selector'Access,
-                         Mark_As_Used => Mark_As_Used,
-                         Found        => Found);
-      return Found;
-   end GPU_Available;
-
+      Card.Partition := P.Get_Properties;
+      Card.Free_Hosts := P.Get_Available_Hosts;
+      Card.Free_Slots := Free_Slots;
+      return Card;
+   end New_Card;
 
    procedure Search_Free_Slots (Selector : not null access function (Card : Index_Card) return Boolean;
                                 Mark_As_Used : Boolean;
