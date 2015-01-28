@@ -2,9 +2,9 @@ with Ada.Text_IO; use Ada.Text_IO;
 with Ada.Strings.Fixed; use Ada.Strings.Fixed;
 with Ada.Exceptions; use Ada.Exceptions;
 with Jobs; use Jobs;
+with Resources;
 with Sanitiser;
 with Utils;
-with SGE.Resources;
 with SGE.Utils;
 
 package body JSV is
@@ -200,18 +200,30 @@ package body JSV is
 
       PE : constant String := Get_PE (J);
    begin
-      Utils.Verbose_Message ("Not applying changes to job " & Get_Name (J));
+      Utils.Verbose_Message ("Applying changes to job " & Get_Name (J));
       if PE /= "" then
-         Utils.Verbose_Message ("PARAM pe_name " & Get_PE (J));
-         Utils.Verbose_Message ("PARAM pe_min " & Get_Slots (J).Min'Img);
-         Utils.Verbose_Message ("PARAM pe_max " & Get_Slots (J).Max'Img);
+         Send (Command => param,
+               Param   => "pe_name",
+               Value   => PE);
+         Send (Command => param,
+               Param   => "pe_min",
+               Value   => Get_Slots (J).Min'Img);
+         Send (Command => param,
+               Param   => "pe_max",
+               Value   => Get_Slots (J).Max'Img);
       end if;
       if Get_Reservation (J) = True then
-         Utils.Verbose_Message ("PARAM R y");
+         Send (Command => param,
+               Param   => "R",
+               Value   => "y");
       elsif Get_Reservation (J) = False then
-         Utils.Verbose_Message ("PARAM R n");
+         Send (Command => param,
+               Param   => "R",
+               Value   => "n");
       end if;
-      Utils.Verbose_Message ("PARAM l_hard " & SGE.Resources.To_String (Get_Resources (J)));
+      Send (Command => param,
+            Param   => "l_hard",
+            Value   => Resources.To_Requirement (Get_Resources (J)));
    end Send_Changes;
 
 end JSV;
