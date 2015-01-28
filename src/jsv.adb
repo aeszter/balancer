@@ -202,7 +202,9 @@ package body JSV is
 
       PE : constant String := Get_PE (J);
    begin
-      Utils.Verbose_Message ("Applying changes to job " & Get_Name (J));
+      Utils.Verbose_Message ("Applying changes to job " & Get_ID (J)
+                             & """" & Get_Name (J) & """");
+      Utils.Verbose_Message (Get_Messages (J));
       if PE /= "" then
          Send (Command => param,
                Param   => "pe_name",

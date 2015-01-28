@@ -151,6 +151,7 @@ package body Sanitiser is
                         Old_State => The_Rule.From,
                         New_State => The_Rule.To) then
             Utils.Trace ("Found a match: " & To_String (The_Rule.Name));
+            Add_Message (J, To_String (The_Rule.Name));
             Apply_Branch_Chain (J, The_Rule.Contents);
          end if;
       end Apply_Rule;

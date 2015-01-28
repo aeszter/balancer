@@ -27,6 +27,11 @@ package body Jobs is
    procedure Apply_Changes (Position : Changed_Lists.Cursor);
    function Timestamp (J : Changed_Job) return String;
 
+   procedure Add_Message (J : in out Changed_Job; Message : String) is
+   begin
+      J.Messages.Append (To_Unbounded_String (Message));
+   end Add_Message;
+
    procedure Add_Resource (J : in out Changed_Job; Res : String) is
       Separator : constant Natural := Ada.Strings.Fixed.Index (Res, "=");
       Name      : constant String := Res (Res'First .. Separator - 1);
@@ -184,6 +189,25 @@ package body Jobs is
    begin
       return J.ID;
    end Get_ID;
+
+   function Get_Messages (J : Changed_Job) return String is
+      use SGE.Utils.String_Lists;
+      procedure Store (Position : Cursor);
+
+      Result : Unbounded_String;
+
+      procedure Store (Position : Cursor) is
+      begin
+         if Length (Result) /= 0 then
+            Append (Result, ", ");
+         end if;
+         Append (Result, Element (Position));
+      end Store;
+
+   begin
+      Iterate (J.Messages, Store'Access);
+      return To_String (Result);
+   end Get_Messages;
 
    function Get_Name (J : Changed_Job) return String is
    begin

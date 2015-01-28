@@ -39,6 +39,7 @@ package Jobs is
    function Get_PE (J : Changed_Job) return String;
    function Get_Resources (J : Changed_Job) return SGE.Resources.Hashed_List;
    function Get_Slots (J : Changed_Job) return SGE.Ranges.Step_Range_List;
+   function Get_Messages (J : Changed_Job) return String;
 
    procedure Set_Slots (J : in out Changed_Job; To : SGE.Ranges.Step_Range_List);
    procedure Set_Slots_Min (J : in out Changed_Job; To : Positive);
@@ -53,6 +54,7 @@ package Jobs is
    procedure Set_New_State (J : in out Changed_Job);
    procedure Set_ID (J : in out Changed_Job; ID : String);
    procedure Set_ID (J : in out Changed_Job; ID : Positive);
+   procedure Add_Message (J : in out Changed_Job; Message : String);
 
 private
    type Changed_Job is record
@@ -64,6 +66,7 @@ private
       Slots                : SGE.Ranges.Step_Range_List;
       Changed              : Boolean;
       Name                 : Unbounded_String;
+      Messages             : SGE.Utils.String_List;
    end record;
 
    Empty_Job : constant Changed_Job := (ID      => 0,
@@ -74,7 +77,8 @@ private
                                         Resources => SGE.Resources.Empty_List,
                                         Slots     => SGE.Ranges.Empty_Range,
                                         Changed   => False,
-                                        Name      => Null_Unbounded_String
+                                        Name      => Null_Unbounded_String,
+                                        Messages  => SGE.Utils.String_Lists.Empty_List
                                        );
 
    function Init (ID : Positive; Old_State, New_State : State) return Changed_Job;
