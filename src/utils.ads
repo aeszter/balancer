@@ -1,9 +1,10 @@
 with Ada.Numerics.Float_Random;
 with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 with SGE.Utils;
+with Ada.Text_IO;
 
 package Utils is
-   Version : String := "develop";
+   Version : String := "feature:jsv";
 
    Assumption_Error : exception;
 
@@ -11,6 +12,7 @@ package Utils is
    procedure Verbose_Message (Message : String);
    procedure Error_Message (Message : String; Bug_ID : Natural := 0);
    procedure Trace (Message : String);
+   procedure Open_Message_File (Name : String);
 
    procedure Enable_Debug;
    function Dry_Run (Message         : String) return Boolean;
@@ -49,4 +51,5 @@ private
    Manual_Destination : Unbounded_String;
    Manual_Jobs      : SGE.Utils.ID_List;
    Current_Manual_Job : SGE.Utils.ID_Lists.Cursor;
+   Message_File     : Ada.Text_IO.File_Type;
 end Utils;

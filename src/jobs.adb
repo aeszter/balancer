@@ -21,7 +21,7 @@ with Sanitiser;
 
 
 package body Jobs is
-   Chain_Count : Natural;
+--   Chain_Count : Natural;
 
    procedure Balance_CPU_GPU (J : Job);
    function Comma_Convert (Encoded_String : String) return String;
@@ -36,6 +36,7 @@ package body Jobs is
       Value     : constant String := Res (Separator + 1 .. Res'Last);
    begin
       Resources.Add (To => J.Resources, Name => Name, Value => Value);
+      J.Changed := True;
    end Add_Resource;
 
    procedure Apply_Changes (Position : Changed_Lists.Cursor) is
@@ -339,15 +340,29 @@ package body Jobs is
 --                                 & Exception_Message (E));
 --     end Extend_Slots_Below;
 
+   procedure Freeze (J : in out Changed_Job) is
+   begin
+      J.Changed := False;
+   end Freeze;
+
    function Get_ID (J : Changed_Job) return String is
    begin
       return J.ID'Img;
+   exception
+      when Constraint_Error =>
+         -- ID 0 (unset)
+         return "";
    end Get_ID;
 
    function Get_ID (J : Changed_Job) return Positive is
    begin
       return J.ID;
-   end;
+   end Get_ID;
+
+   function Get_Name (J : Changed_Job) return String is
+   begin
+      return To_String (J.Name);
+   end Get_Name;
 
    function Get_PE (J : Changed_Job) return String is
    begin
@@ -402,7 +417,7 @@ package body Jobs is
          SGE.Jobs.Iterate (Parser.Add_Pending_Since'Access);
       end if;
       SGE.Jobs.Iterate (Users.Add_Job'Access);
-      Chain_Count := 0;
+--      Chain_Count := 0;
 --      SGE.Jobs.Iterate (Add_Chain_Head'Access);
       Utils.Verbose_Message (SGE.Jobs.Count (Not_On_Hold'Access)'Img
                              & " by" & Users.Total_Users'Img
@@ -420,9 +435,10 @@ package body Jobs is
       return J;
    end Init;
 
-   -------------
-   -- Balance --
-   -------------
+   function Is_Changed (J : Changed_Job) return Boolean is
+   begin
+      return J.Changed;
+   end Is_Changed;
 
    function Is_Eligible (J : Job) return Boolean is
    begin
@@ -496,33 +512,106 @@ package body Jobs is
    begin
       Utils.Trace ("Removing " & To_String (Res));
       J.Resources.Exclude (Res);
+      J.Changed := True;
    end Remove_Resource;
+
+   procedure Set_ID (J : in out Changed_Job; ID : String) is
+   begin
+      Set_ID (J, Natural'Value (ID));
+   end Set_ID;
+
+   procedure Set_ID (J : in out Changed_Job; ID : Positive) is
+   begin
+      J.ID := ID;
+   end Set_ID;
+
+   procedure Set_Name (J : in out Changed_Job; Name : String) is
+   begin
+      J.Name := To_Unbounded_String (Name);
+   end Set_Name;
+
+   procedure Set_New_State (J : in out Changed_Job) is
+   begin
+      if J.Resources.Contains (To_Unbounded_String ("gpu")) then
+         J.New_State := gpu;
+      else
+         J.New_State := cpu;
+      end if;
+   end Set_New_State;
+
+   procedure Set_Old_State (J : in out Changed_Job; To : State) is
+   begin
+      J.Old_State := To;
+   end Set_Old_State;
 
    procedure Set_PE (J : in out Changed_Job; To : Unbounded_String) is
    begin
       J.PE := To;
+      J.Changed := True;
    end Set_PE;
 
    procedure Set_Reservation (J : in out Changed_Job; To : Boolean) is
    begin
       J.Reserve := To_Tri_State (To);
+      J.Changed := True;
    end Set_Reservation;
 
-   procedure Set_Resources (J : in out Changed_Job; To : Unbounded_String) is
+   procedure Set_Resources (J : in out Changed_Job; To : String) is
+      use Ada.Strings.Fixed;
+
+      Index_List : array (1 .. 256) of Natural;
+      Next_Index : Natural := 1;
    begin
       J.Resources.Clear;
-      Add_Resource (J, To_String (To));
+      Index_List (Next_Index) := 1;
+      while Index_List (Next_Index) < To'Last loop
+         Next_Index := Next_Index + 1;
+         Index_List (Next_Index) := 1 + Index (To (Index_List (Next_Index - 1) .. To'Last), ",");
+         if Index_List (Next_Index) = 1 then
+            Index_List (Next_Index) := To'Last + 2;
+         end if;
+         Add_Resource (J, To (Index_List (Next_Index - 1) .. Index_List (Next_Index) - 2));
+      end loop;
+      J.Changed := True;
    end Set_Resources;
 
    procedure Set_Slots (J : in out Changed_Job; To : String) is
    begin
       J.Slots := SGE.Ranges.To_Step_Range_List (To);
+      J.Changed := True;
    end Set_Slots;
 
    procedure Set_Slots (J : in out Changed_Job; To : SGE.Ranges.Step_Range_List) is
    begin
       J.Slots := To;
+      J.Changed := True;
    end Set_Slots;
+
+   procedure Set_Slots_Max (J : in out Changed_Job; To : Positive) is
+      Min : Positive := 1;
+   begin
+      if not J.Slots.Is_Empty then
+         Min := J.Slots.Min;
+         J.Slots.Clear;
+      end if;
+      J.Slots.Append (SGE.Ranges.New_Range (Min  => Min,
+                                 Step => 1,
+                                 Max  => To));
+      J.Changed := True;
+   end Set_Slots_Max;
+
+   procedure Set_Slots_Min (J : in out Changed_Job; To : Positive) is
+      Max : Positive := 1_024;
+   begin
+      if not J.Slots.Is_Empty then
+         Max := J.Slots.Max;
+         J.Slots.Clear;
+      end if;
+      J.Slots.Append (SGE.Ranges.New_Range (Min  => To,
+                                 Step => 1,
+                                 Max  => Max));
+      J.Changed := True;
+   end Set_Slots_Min;
 
    procedure Shift (J : Natural; To : String) is
    begin

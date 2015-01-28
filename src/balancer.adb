@@ -4,20 +4,49 @@ with Ada.Command_Line; use Ada.Command_Line;
 with Diagnostics;
 with Utils; use Utils;
 with Jobs;
+with JSV;
 with Partitions;
 with Statistics;
 with SGE.Utils;
 with Sanitiser;
 
-
 procedure Balancer is
+   procedure Init;
+
+   type Mode is (unknown_mode, jsv_mode, balancer_mode);
+   Run_As : Mode := unknown_mode;
    Exit_Unknown_Error : constant Exit_Status := 1;
+   My_Name : constant String := Ada.Command_Line.Command_Name;
+
+   procedure Init is
+   begin
+      Utils.Check_Options;
+      Utils.Verbose_Message ("Balancer " & Utils.Version & " by aeszter@mpibpc.mpg.de");
+      Utils.Verbose_Message ("SGElib " & SGE.Utils.Version);
+      Debug ("Debugging enabled");
+   end Init;
 
 begin
-   Utils.Check_Options;
-   Utils.Verbose_Message ("Balancer " & Utils.Version & " by aeszter@mpibpc.mpg.de");
-   Utils.Verbose_Message ("SGElib " & SGE.Utils.Version);
-   Debug ("Debugging enabled");
+   if My_Name (My_Name'Last - 2 .. My_Name'Last) = "jsv" then
+      Run_As := jsv_mode;
+   elsif My_Name (My_Name'Last - 7 .. My_Name'Last) = "balancer" then
+      Run_As := balancer_mode;
+   end if;
+
+   if Run_As = jsv_mode then
+      Utils.Open_Message_File ("/var/log/jsv.log");
+   end if;
+   Init;
+
+   if Run_As = jsv_mode then
+      JSV.Main_Loop;
+      return;
+   elsif Run_As = unknown_mode then
+      Utils.Error_Message ("Warning: this executable should be called "
+                           & "either ""jsv"" or ""balancer"". "
+                           & "Running in balancer mode now, "
+                           & "but this behaviour may change.");
+   end if;
 
    Sanitiser.Init;
    Jobs.Init;

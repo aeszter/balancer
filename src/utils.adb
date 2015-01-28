@@ -13,6 +13,7 @@ package body Utils is
    -----------
 
    procedure Add_Manual_Job (ID : Positive);
+   procedure Put_Line (Item : String);
 
    procedure Add_Manual_Job (ID : Positive) is
    begin
@@ -96,7 +97,7 @@ package body Utils is
       Put_Line (Message);
       if Bug_ID /= 0 then
          Put_Line ("See Bug" & Bug_ID'Img
-                   & ": http://ram/bugzilla/show_bug.cgi?id=" & Bug_ID'Img);
+                   & ": http://s1050-z/bugzilla/show_bug.cgi?id=" & Bug_ID'Img);
       end if;
    end Error_Message;
 
@@ -167,6 +168,11 @@ package body Utils is
       return Mode = manual;
    end On_Manual;
 
+   procedure Put_Line (Item : String) is
+   begin
+      Ada.Text_IO.Put_Line (File => Message_File, Item => Item);
+   end Put_Line;
+
    function Get_Destination return String is
    begin
       return To_String (Manual_Destination);
@@ -189,6 +195,19 @@ package body Utils is
    begin
       return Result (2 .. Result'Last);
    end Now;
+
+   procedure Open_Message_File (Name : String) is
+   begin
+      Ada.Text_IO.Open (File => Message_File,
+                        Mode => Append_File,
+                        Name => Name);
+   exception
+      when Name_Error =>
+         Ada.Text_IO.Create (File => Message_File,
+                             Mode => Append_File,
+                             Name => Name);
+   end Open_Message_File;
+
 
    function To_Number (Num : String) return Integer is
    begin
