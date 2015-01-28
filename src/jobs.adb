@@ -515,6 +515,16 @@ package body Jobs is
       J.Changed := True;
    end Remove_Resource;
 
+   procedure Set_ID (J : in out Changed_Job; ID : String) is
+   begin
+      Set_ID (J, Natural'Value (ID));
+   end Set_ID;
+
+   procedure Set_ID (J : in out Changed_Job; ID : Positive) is
+   begin
+      J.ID := ID;
+   end Set_ID;
+
    procedure Set_Name (J : in out Changed_Job; Name : String) is
    begin
       J.Name := To_Unbounded_String (Name);

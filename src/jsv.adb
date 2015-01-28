@@ -117,6 +117,8 @@ package body JSV is
          end if;
       elsif Parameter = "N" then
          Set_Name (J, Value);
+      elsif Parameter =  "JOB_ID" then
+         Set_ID (J, Value);
       end if;
    end Handle_Incoming_Parameter;
 

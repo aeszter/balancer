@@ -54,6 +54,8 @@ package Jobs is
    procedure Set_Name (J : in out Changed_Job; Name : String);
    procedure Set_Old_State (J : in out Changed_Job; To : State);
    procedure Set_New_State (J : in out Changed_Job);
+   procedure Set_ID (J : in out Changed_Job; ID : String);
+   procedure Set_ID (J : in out Changed_Job; ID : Positive);
 
 private
    type Changed_Job is record
