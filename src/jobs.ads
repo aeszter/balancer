@@ -30,9 +30,6 @@ package Jobs is
    procedure Migrate_To_GPU (J : Job);
    procedure Apply_Rules_Only (J : Job);
 
---   procedure Reduce_Slots (J : Job; To : String; Runtime : String);
---   procedure Extend_Slots (J : Job; To : String);
---   procedure Add_Chain_Head (J : SGE.Jobs.Job);
    function Match (J : Changed_Job; Old_State, New_State : State) return Boolean;
 
    function Get_ID (J : Changed_Job) return String;

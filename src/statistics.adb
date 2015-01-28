@@ -50,14 +50,6 @@ package body Statistics is
          Put (Global_Stats.Recent'Img
                & " jobs too recent to be migrated");
       end if;
-      if Global_Stats.Range_Reduction > 0 then
-         Put (Global_Stats.Range_Reduction'Img
-               & " jobs changed to lower slot numbers");
-      end if;
-      if Global_Stats.Range_Extension > 0 then
-         Put (Global_Stats.Range_Extension'Img
-                               & " jobs changed to higher slot numbers");
-      end if;
       if Global_Stats.Aimless > 0 then
          Put (Global_Stats.Aimless'Img & " jobs without destination found");
       end if;
@@ -110,16 +102,6 @@ package body Statistics is
    begin
       Increment (Global_Stats.Recent);
    end Recent_Job;
-
-   procedure Extend_Range is
-   begin
-      Increment (Global_Stats.Range_Extension);
-   end Extend_Range;
-
-   procedure Reduce_Range is
-   begin
-      Increment (Global_Stats.Range_Reduction);
-   end Reduce_Range;
 
    function No_Slots return Natural is
    begin

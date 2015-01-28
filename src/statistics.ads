@@ -10,8 +10,6 @@ package Statistics is
    procedure No_CPU;
    procedure No_GPU;
    procedure Aimless_Job;
-   procedure Reduce_Range;
-   procedure Extend_Range;
    procedure Recent_Job;
    procedure Quota_Inhibited (ID : Positive);
 
@@ -24,8 +22,6 @@ private
       Recent         : Natural := 0;
       No_CPU_Slots, No_GPU_Slots : Natural := 0;
       Quota          : Job_Counter.Set;
-      Range_Reduction            : Natural := 0;
-      Range_Extension : Natural := 0;
    end record;
 
    Global_Stats : Data;
