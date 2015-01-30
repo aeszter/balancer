@@ -98,7 +98,7 @@ package body JSV is
       if Parameter = "l_hard" then
          Set_Resources (J, Value);
       elsif Parameter = "q_hard" then
-         Utils.Verbose_Message ("Hard queue " & Value & " ignored: not implemented");
+         Add_Resource (J, "q=" & Value);
       elsif Parameter = "l_soft" then
          Utils.Verbose_Message ("Soft resources " & Value & " ignored: not implemented");
       elsif Parameter = "pe_name" then
