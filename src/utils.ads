@@ -4,7 +4,7 @@ with SGE.Utils;
 with Ada.Text_IO;
 
 package Utils is
-   Version : String := "feature:jsv";
+   Version : String := "v3.0";
 
    Assumption_Error : exception;
 
