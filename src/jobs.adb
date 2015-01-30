@@ -386,8 +386,10 @@ package body Jobs is
 
    procedure Set_Reservation (J : in out Changed_Job; To : Boolean) is
    begin
+      if J.Reserve /= To_Tri_State (To) then
       J.Reserve := To_Tri_State (To);
       J.Changed := True;
+      end if;
    end Set_Reservation;
 
    procedure Set_Resources (J : in out Changed_Job; To : String) is

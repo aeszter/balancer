@@ -207,7 +207,10 @@ package body Sanitiser is
          raise Program_Error with "Check_Resources called with non-string literal";
       end if;
       case Op is
-         when others => Utils.Error_Message ("Check_Resources unimplemented");
+         when contains =>
+            return Get_Resources (J).Contains (Value.String_Value);
+         when others =>
+            Utils.Error_Message ("Check_Resources implemented for '>' only");
       end case;
       return False;
    end Check_Resources;
