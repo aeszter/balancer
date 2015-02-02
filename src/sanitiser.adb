@@ -71,6 +71,7 @@ package body Sanitiser is
          case Op is
             when assign =>
                Set_PE (J, Value.String_Value);
+               Utils.Trace ("PE := " & To_String (Value.String_Value));
             when others =>
                raise Rule_Error with "unsupported operator " & Op'Img &
                " in Apply_to_PE";
@@ -82,6 +83,7 @@ package body Sanitiser is
          case Op is
             when assign =>
                Set_Reservation (J, Value.Bool_Value);
+               Utils.Trace ("R := " & Value.Bool_Value'Img);
             when others =>
                raise Rule_Error with "unsupported operator " & Op'Img &
                " in Apply_to_Reservation";
@@ -92,11 +94,14 @@ package body Sanitiser is
       begin
          case Op is
             when assign =>
-               Set_Resources (J, Value.String_Value);
+               Set_Resources (J, To_String (Value.String_Value));
+               Utils.Trace ("Res := " & To_String (Value.String_Value));
             when add =>
                Add_Resource (J, Get_String (Value));
+               Utils.Trace ("Res += " & To_String (Value.String_Value));
             when remove =>
                Remove_Resource (J, Value.String_Value);
+               Utils.Trace ("Res -= " & To_String (Value.String_Value));
             when others =>
                raise Rule_Error with "unsupported operator " & Op'Img &
                " in Apply_to_Resources";
@@ -108,6 +113,7 @@ package body Sanitiser is
          case Op is
             when assign =>
                Set_Slots (J, Value.Slot_Value);
+               Utils.Trace ("Slots := " & SGE.Ranges.To_String (Value.Slot_Value, Short => True));
             when others =>
                raise Rule_Error with "unsupported operator " & Op'Img &
                " in Apply_to_Slots";
@@ -134,7 +140,7 @@ package body Sanitiser is
    end Apply_Branch_Chain;
 
    procedure Apply_Rules (J : in out Changed_Job) is
-      ID : Natural := 0;
+      ID : constant String := Get_ID (J);
 
       procedure Apply_Rule (Position : Rule_Lists.Cursor);
 
@@ -145,24 +151,18 @@ package body Sanitiser is
                         Old_State => The_Rule.From,
                         New_State => The_Rule.To) then
             Utils.Trace ("Found a match: " & To_String (The_Rule.Name));
+            Add_Message (J, To_String (The_Rule.Name));
             Apply_Branch_Chain (J, The_Rule.Contents);
          end if;
       end Apply_Rule;
    begin
-      ID := Get_ID (J); -- do not move to declarative part:
-                        -- we could miss exceptions raised by Get_ID.
-      Utils.Trace ("Applying rules to" & ID'Img);
+      Utils.Trace ("Applying rules to" & ID);
       Rules.Iterate (Apply_Rule'Access);
    exception
-      when E: others =>
-         if ID = 0 then
-            Utils.Error_Message ("Exception encountered while applying rules to defective job: "
+      when E : others =>
+         Utils.Error_Message ("Exception encountered while applying rules to job"
+                                 & ID & ": "
                                  & Exception_Message (E));
-         else
-            Utils.Error_Message ("Exception encountered while applying rules to job"
-                                 & ID'Img & ": "
-                                 & Exception_Message (E));
-         end if;
    end Apply_Rules;
 
    function Check_PE (J : Changed_Job; Op : Operator; Value : Multitype) return Boolean is
@@ -207,7 +207,10 @@ package body Sanitiser is
          raise Program_Error with "Check_Resources called with non-string literal";
       end if;
       case Op is
-         when others => Utils.Error_Message ("Check_Resources unimplemented");
+         when contains =>
+            return Get_Resources (J).Contains (Value.String_Value);
+         when others =>
+            Utils.Error_Message ("Check_Resources implemented for '>' only");
       end case;
       return False;
    end Check_Resources;

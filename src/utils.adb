@@ -13,101 +13,12 @@ package body Utils is
    -----------
 
    procedure Add_Manual_Job (ID : Positive);
+   procedure Put_Line (Item : String);
 
    procedure Add_Manual_Job (ID : Positive) is
    begin
       Manual_Jobs.Insert (ID);
    end Add_Manual_Job;
-
-   procedure Debug (Message : String; New_Line : Boolean := True) is
-   begin
-      if Debug_Enabled then
-         if New_Line then
-            Put_Line (Standard_Error, Message);
-         else
-            Put (Standard_Error, Message);
-         end if;
-      end if;
-   end Debug;
-
-   -------------
-   -- Dry_Run --
-   -------------
-
-   function Dry_Run (Message : String) return Boolean is
-   begin
-      if not Action then
-         Ada.Text_IO.Put_Line (Message);
-      end if;
-      return not Action;
-   end Dry_Run;
-
-   procedure Enable_Debug is
-   begin
-      Debug_Enabled := True;
-   end Enable_Debug;
-
-   function Random return Float_Random.Uniformly_Distributed is
-   begin
-      return Float_Random.Random (Random_Generator);
-   end Random;
-
-   procedure Next_Manual_Job is
-   begin
-      SGE.Utils.ID_Lists.Next (Current_Manual_Job);
-   end Next_Manual_Job;
-
-   function Get_Manual_Job return Positive is
-   begin
-      return SGE.Utils.ID_Lists.Element (Current_Manual_Job);
-   end Get_Manual_Job;
-
-   function Has_Manual_Job return Boolean is
-      use SGE.Utils.ID_Lists;
-   begin
-      return Current_Manual_Job /= No_Element;
-   end Has_Manual_Job;
-
-   procedure Rewind_Manual_Jobs is
-   begin
-      Current_Manual_Job := Manual_Jobs.First;
-   end Rewind_Manual_Jobs;
-
-   procedure Trace (Message : String) is
-   begin
-      if Trace_Policy then
-         Put_Line (Message);
-      end if;
-   end Trace;
-
-   ---------------------
-   -- Verbose_Message --
-   ---------------------
-
-   procedure Verbose_Message (Message : String) is
-   begin
-      if Verbose then
-         Put_Line (Message);
-      end if;
-   end Verbose_Message;
-
-   procedure Error_Message (Message : String; Bug_ID : Natural := 0) is
-   begin
-      Put_Line (Message);
-      if Bug_ID /= 0 then
-         Put_Line ("See Bug" & Bug_ID'Img
-                   & ": http://ram/bugzilla/show_bug.cgi?id=" & Bug_ID'Img);
-      end if;
-   end Error_Message;
-
-
-   ------------------
-   -- Enable_Debug --
-   ------------------
-
-   -------------------
-   -- Check_Options --
-   -------------------
 
    procedure Check_Options is
    begin
@@ -157,6 +68,71 @@ package body Utils is
       end loop;
    end Check_Options;
 
+   procedure Debug (Message : String; New_Line : Boolean := True) is
+   begin
+      if Debug_Enabled then
+         if New_Line then
+            Put_Line (Standard_Error, Message);
+         else
+            Put (Standard_Error, Message);
+         end if;
+      end if;
+   end Debug;
+
+   function Dry_Run (Message : String) return Boolean is
+   begin
+      if not Action then
+         Ada.Text_IO.Put_Line (Message);
+      end if;
+      return not Action;
+   end Dry_Run;
+
+   procedure Enable_Debug is
+   begin
+      Debug_Enabled := True;
+   end Enable_Debug;
+
+   procedure Error_Message (Message : String; Bug_ID : Natural := 0) is
+   begin
+      Put_Line (Message);
+      if Bug_ID /= 0 then
+         Put_Line ("See Bug" & Bug_ID'Img
+                   & ": http://s1050-z/bugzilla/show_bug.cgi?id=" & Bug_ID'Img);
+      end if;
+   end Error_Message;
+
+   function Get_Destination return String is
+   begin
+      return To_String (Manual_Destination);
+   end Get_Destination;
+
+   function Get_Manual_Job return Positive is
+   begin
+      return SGE.Utils.ID_Lists.Element (Current_Manual_Job);
+   end Get_Manual_Job;
+
+   function Has_Manual_Job return Boolean is
+      use SGE.Utils.ID_Lists;
+   begin
+      return Current_Manual_Job /= No_Element;
+   end Has_Manual_Job;
+
+   procedure Init_Random is
+   begin
+      Float_Random.Reset (Random_Generator);
+   end Init_Random;
+
+   procedure Next_Manual_Job is
+   begin
+      SGE.Utils.ID_Lists.Next (Current_Manual_Job);
+   end Next_Manual_Job;
+
+   function Now return String is
+      Result : constant String := To_Unix_Time (Ada.Calendar.Clock)'Img;
+   begin
+      return Result (2 .. Result'Last);
+   end Now;
+
    function On_Automatic return Boolean is
    begin
       return Mode = automatic;
@@ -167,33 +143,55 @@ package body Utils is
       return Mode = manual;
    end On_Manual;
 
-   function Get_Destination return String is
+   procedure Open_Message_File (Name : String) is
    begin
-      return To_String (Manual_Destination);
-   end Get_Destination;
+      Ada.Text_IO.Open (File => Message_File,
+                        Mode => Append_File,
+                        Name => Name);
+   exception
+      when Name_Error =>
+         Ada.Text_IO.Create (File => Message_File,
+                             Mode => Append_File,
+                             Name => Name);
+   end Open_Message_File;
+
+   procedure Put_Line (Item : String) is
+   begin
+      Ada.Text_IO.Put_Line (File => Message_File, Item => Item);
+   end Put_Line;
+
+   function Random return Float_Random.Uniformly_Distributed is
+   begin
+      return Float_Random.Random (Random_Generator);
+   end Random;
+
+   procedure Rewind_Manual_Jobs is
+   begin
+      Current_Manual_Job := Manual_Jobs.First;
+   end Rewind_Manual_Jobs;
 
    function Stats_Enabled return Boolean is
    begin
       return Stats;
    end Stats_Enabled;
 
-
-   procedure Init_Random is
-   begin
-      Float_Random.Reset (Random_Generator);
-   end Init_Random;
-
-
-   function Now return String is
-      Result : constant String := To_Unix_Time (Ada.Calendar.Clock)'Img;
-   begin
-      return Result (2 .. Result'Last);
-   end Now;
-
    function To_Number (Num : String) return Integer is
    begin
       return Integer'Value (Num);
    end To_Number;
 
+   procedure Trace (Message : String) is
+   begin
+      if Trace_Policy then
+         Put_Line (Message);
+      end if;
+   end Trace;
+
+   procedure Verbose_Message (Message : String) is
+   begin
+      if Verbose then
+         Put_Line (Message);
+      end if;
+   end Verbose_Message;
 
 end Utils;

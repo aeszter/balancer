@@ -21,14 +21,16 @@ with Sanitiser;
 
 
 package body Jobs is
-   Chain_Count : Natural;
 
    procedure Balance_CPU_GPU (J : Job);
    function Comma_Convert (Encoded_String : String) return String;
---   procedure Extend_Slots_Above (Position : Job_Lists.Cursor);
---   procedure Extend_Slots_Below (J : Job);
    procedure Apply_Changes (Position : Changed_Lists.Cursor);
    function Timestamp (J : Changed_Job) return String;
+
+   procedure Add_Message (J : in out Changed_Job; Message : String) is
+   begin
+      J.Messages.Append (To_Unbounded_String (Message));
+   end Add_Message;
 
    procedure Add_Resource (J : in out Changed_Job; Res : String) is
       Separator : constant Natural := Ada.Strings.Fixed.Index (Res, "=");
@@ -36,6 +38,7 @@ package body Jobs is
       Value     : constant String := Res (Separator + 1 .. Res'Last);
    begin
       Resources.Add (To => J.Resources, Name => Name, Value => Value);
+      J.Changed := True;
    end Add_Resource;
 
    procedure Apply_Changes (Position : Changed_Lists.Cursor) is
@@ -71,47 +74,10 @@ package body Jobs is
       Modified.Append (Item);
    end Apply_Rules_Only;
 
-
---     procedure Add_Chain_Head (J : Job) is
---        procedure Test_Hold (ID : Natural);
---
---        Any_Held : Boolean := False;
---
---        procedure Test_Hold (ID : Natural) is
---        begin
---           if On_Hold (Find_Job (ID)) then
---              Any_Held := True;
---           end if;
---        exception
---           when Constraint_Error =>
---              --  job not listed, i.e. not pending
---              null;
---        end Test_Hold;
---
---     begin
---        if not On_Hold (J) then
---           return;
---        end if;
---        Iterate_Predecessors (J, Test_Hold'Access);
---        if Any_Held then
---           return;
---        end if;
---        Chain_Count := Chain_Count + 1;
---        if not Supports_Balancer (J, High_Cores) then
---           return;
---        end if;
---        Chain_Heads.Append (J);
---        Utils.Trace ("Found chain head " & Get_ID (J));
---     end Add_Chain_Head;
-
    procedure Balance is
    begin
---      Utils.Trace ("Extending slot ranges to fewer cores");
---      Users.Iterate (Extend_Slots_Below'Access);
       Utils.Trace ("Shifting jobs between CPU and GPU");
       Users.Iterate (Balance_CPU_GPU'Access);
---      Utils.Trace ("Extending slot ranges to more cores");
---      Chain_Heads.Iterate (Extend_Slots_Above'Access);
       Apply_Recorded_Changes;
    end Balance;
 
@@ -205,149 +171,48 @@ package body Jobs is
       return Left.ID = Right.ID;
    end Equal_Jobs;
 
---     procedure Extend_Slots (J : Job; To : String) is
---        New_Resources : SGE.Resources.Hashed_List := Get_Hard_Resources (J);
---        Item : Changed_Job := (ID => Get_ID (J), New_State => extend, Slots => To, Timestamp => "LASTEXT");
---     begin
---        New_Resources.Delete (Key => To_Unbounded_String ("gpu"));
---        Item.Resources := Resources.To_Requirement (New_Resources);
---        Modified.Append (Item);
---     end Extend_Slots;
-
---     procedure Extend_Slots_Above (Position : Job_Lists.Cursor) is
---        use Ada.Calendar;
---        use Ada.Calendar.Conversions;
---        J    : constant Job := Job_Lists.Element (Position);
---        User : constant String := To_String (Get_Owner (J));
---
---     begin
---        if Quota_Inhibited (J) then
---           Statistics.Quota_Inhibited (Get_ID (J));
---           return;
---        end if;
---        Utils.Trace ("Looking at " & User & "'s job " & Get_ID (J));
---        if not Supports_Balancer (J, High_Cores) then
---           Utils.Trace ("High_Cores not supported");
---           return;
---        end if;
---
---        if Users.Count_Jobs (For_User => User) < Max_Pending_On_Underutilisation then
---           declare
---              Slot_Range : constant String := Comma_Convert (
---                              Get_Context (J   => J,
---                                           Key => SGE.Context.Slots_Extend));
---           begin
---              if Has_Context (J, SGE.Context.Last_Extension) then
---                 Utils.Trace ("already extended");
---                 return;
---              end if;
---              if Partitions.CPU_Available (For_Job      => J,
---                                           Mark_As_Used => False,
---                                           Fulfilling => Partitions.Maximum) then
---                 Extend_Slots (J, Slot_Range);
---                 Statistics.Extend_Range;
---              else
---                 Utils.Trace ("too few slots free");
---              end if;
---           end;
---        else
---           Utils.Trace ("user has too many qw jobs");
---        end if;
---     exception
---        when E : Parser.Security_Error =>
---           Ada.Text_IO.Put_Line (Exception_Message (E) & " while processing job" & Get_ID (J));
---        when E : SGE.Parser.Parser_Error =>
---           Ada.Text_IO.Put_Line (Exception_Message (E) & " while processing job" & Get_ID (J));
---        when E : Support_Error =>
---           Ada.Text_IO.Put_Line ("Job" & Get_ID (J) & " unexpectedly lacks Balancer support: "
---                                 & Exception_Message (E));
---        when E : others =>
---           Ada.Text_IO.Put_Line ("unexpected error in job " & Get_ID (J) & ": "
---                                 & Exception_Message (E));
---     end Extend_Slots_Above;
---
---     procedure Extend_Slots_Below (J : Job) is
---        use Ada.Calendar;
---        use Ada.Calendar.Conversions;
---     begin
---        if On_Hold (J) then
---           return;
---        end if;
---        if Quota_Inhibited (J) then
---           Statistics.Quota_Inhibited (Positive'(Get_ID (J)));
---           return;
---        end if;
---        Utils.Trace ("Looking at " & To_String (Get_Owner (J))
---                     & "'s job " & Get_ID (J));
---        if not Supports_Balancer (J, Low_Cores) then
---           Utils.Trace ("Low_Cores not supported");
---           return;
---        end if;
---
---        if Queued_For_CPU (J)
---          and then not Partitions.CPU_Available (J, Mark_As_Used => False,
---                                                Fulfilling => Partitions.Minimum) then
---           declare
---              Threshold     : constant Duration := Duration'Value (
---                              Get_Context (J   => J,
---                                           Key => SGE.Context.Wait_Reduce));
---              Slot_Range    : constant String := Comma_Convert (
---                              Get_Context (J   => J,
---                                           Key => SGE.Context.Slots_Reduce));
---              Pending_Since : constant Time := To_Ada_Time (Interfaces.C.long'Value (
---                              Get_Context (J   => J,
---                                           Key => SGE.Context.Pending_Since)));
---              Runtime       : constant String := Get_Context (J   => J,
---                                                              Key => SGE.Context.Reduced_Runtime);
---           begin
---              if Has_Context (J, SGE.Context.Last_Reduction) then
---                 declare
---                    Last_Reduction : constant Time := Get_Last_Reduction (J);
---                    -- will not raise an exception since Has_Context ("LASTRED") is true
---                    Last_Migration : constant Time := Get_Last_Migration (J);
---                 begin
---                    if Last_Reduction > Last_Migration then
---                       Utils.Trace ("already reduced");
---                       return;
---                    end if;
---                 exception
---                    when Constraint_Error =>
---                       Utils.Trace ("already reduced");
---                       return;
---                 end;
---              end if;
---              if Clock > Pending_Since + Threshold then
---                 Reduce_Slots (J, Slot_Range, Runtime);
---                 Statistics.Reduce_Range;
---              else
---                 Utils.Trace ("too recent");
---              end if;
---           end;
---        else
---           Utils.Trace ("not queued for CPU, or free CPUs found");
---        end if;
---     exception
---        when E : Parser.Security_Error =>
---           Ada.Text_IO.Put_Line (Exception_Message (E) & " while processing job" & Get_ID (J));
---        when E : SGE.Parser.Parser_Error =>
---           Ada.Text_IO.Put_Line (Exception_Message (E) & " while processing job" & Get_ID (J));
---        when E : Support_Error =>
---           Ada.Text_IO.Put_Line ("Job" & Get_ID (J) & " unexpectedly lacks Balancer support: "
---                                 & Exception_Message (E));
---        when E : others =>
---           Ada.Text_IO.Put_Line ("unexpected error in job " & Get_ID (J) & ": "
---                                 & Exception_Message (E));
---     end Extend_Slots_Below;
+   procedure Freeze (J : in out Changed_Job) is
+   begin
+      J.Changed := False;
+   end Freeze;
 
    function Get_ID (J : Changed_Job) return String is
    begin
       return J.ID'Img;
+   exception
+      when Constraint_Error =>
+         -- ID 0 (unset)
+         return "";
    end Get_ID;
 
    function Get_ID (J : Changed_Job) return Positive is
    begin
       return J.ID;
-   end;
+   end Get_ID;
+
+   function Get_Messages (J : Changed_Job) return String is
+      use SGE.Utils.String_Lists;
+      procedure Store (Position : Cursor);
+
+      Result : Unbounded_String;
+
+      procedure Store (Position : Cursor) is
+      begin
+         if Length (Result) /= 0 then
+            Append (Result, ", ");
+         end if;
+         Append (Result, Element (Position));
+      end Store;
+
+   begin
+      Iterate (J.Messages, Store'Access);
+      return To_String (Result);
+   end Get_Messages;
+
+   function Get_Name (J : Changed_Job) return String is
+   begin
+      return To_String (J.Name);
+   end Get_Name;
 
    function Get_PE (J : Changed_Job) return String is
    begin
@@ -402,13 +267,9 @@ package body Jobs is
          SGE.Jobs.Iterate (Parser.Add_Pending_Since'Access);
       end if;
       SGE.Jobs.Iterate (Users.Add_Job'Access);
-      Chain_Count := 0;
---      SGE.Jobs.Iterate (Add_Chain_Head'Access);
       Utils.Verbose_Message (SGE.Jobs.Count (Not_On_Hold'Access)'Img
                              & " by" & Users.Total_Users'Img
                              & " users eligible for re-queueing");
---      Utils.Verbose_Message (Chain_Count'Img & " chain heads found ("
---                             & Chain_Heads.Length'Img & " with extension support)");
    end Init;
 
    function Init (ID : Positive; Old_State, New_State : State) return Changed_Job is
@@ -420,9 +281,10 @@ package body Jobs is
       return J;
    end Init;
 
-   -------------
-   -- Balance --
-   -------------
+   function Is_Changed (J : Changed_Job) return Boolean is
+   begin
+      return J.Changed;
+   end Is_Changed;
 
    function Is_Eligible (J : Job) return Boolean is
    begin
@@ -480,49 +342,112 @@ package body Jobs is
       return Res.Contains (To_Unbounded_String ("gpu"));
    end Queued_For_GPU;
 
---     procedure Reduce_Slots (J : Job; To : String; Runtime : String) is
---        New_Resources : SGE.Resources.Hashed_List := Get_Hard_Resources (J);
---        Item : Changed_Job := (ID => Get_ID (J), New_State => reduced, Timestamp => "LASTRED", Slots => To);
---     begin
---        if Runtime /= "" then
---           New_Resources.Delete (Key => To_Unbounded_String ("h_rt"));
---           Resources.Add (To => New_Resources, Name => "h_rt", Value => Runtime);
---        end if;
---        Item.Resources := New_Resources;
---        Modified.Append (Item);
---     end Reduce_Slots;
-
    procedure Remove_Resource (J : in out Changed_Job; Res : Unbounded_String) is
    begin
       Utils.Trace ("Removing " & To_String (Res));
       J.Resources.Exclude (Res);
+      J.Changed := True;
    end Remove_Resource;
+
+   procedure Set_ID (J : in out Changed_Job; ID : String) is
+   begin
+      Set_ID (J, Natural'Value (ID));
+   end Set_ID;
+
+   procedure Set_ID (J : in out Changed_Job; ID : Positive) is
+   begin
+      J.ID := ID;
+   end Set_ID;
+
+   procedure Set_Name (J : in out Changed_Job; Name : String) is
+   begin
+      J.Name := To_Unbounded_String (Name);
+   end Set_Name;
+
+   procedure Set_New_State (J : in out Changed_Job) is
+   begin
+      if J.Resources.Contains (To_Unbounded_String ("gpu")) then
+         J.New_State := gpu;
+      else
+         J.New_State := cpu;
+      end if;
+   end Set_New_State;
+
+   procedure Set_Old_State (J : in out Changed_Job; To : State) is
+   begin
+      J.Old_State := To;
+   end Set_Old_State;
 
    procedure Set_PE (J : in out Changed_Job; To : Unbounded_String) is
    begin
       J.PE := To;
+      J.Changed := True;
    end Set_PE;
 
    procedure Set_Reservation (J : in out Changed_Job; To : Boolean) is
    begin
-      J.Reserve := To_Tri_State (To);
+      if J.Reserve /= To_Tri_State (To) then
+         J.Reserve := To_Tri_State (To);
+         J.Changed := True;
+      end if;
    end Set_Reservation;
 
-   procedure Set_Resources (J : in out Changed_Job; To : Unbounded_String) is
+   procedure Set_Resources (J : in out Changed_Job; To : String) is
+      use Ada.Strings.Fixed;
+
+      Index_List : array (1 .. 256) of Natural;
+      Next_Index : Natural := 1;
    begin
       J.Resources.Clear;
-      Add_Resource (J, To_String (To));
+      Index_List (Next_Index) := 1;
+      while Index_List (Next_Index) < To'Last loop
+         Next_Index := Next_Index + 1;
+         Index_List (Next_Index) := 1 + Index (To (Index_List (Next_Index - 1) .. To'Last), ",");
+         if Index_List (Next_Index) = 1 then
+            Index_List (Next_Index) := To'Last + 2;
+         end if;
+         Add_Resource (J, To (Index_List (Next_Index - 1) .. Index_List (Next_Index) - 2));
+      end loop;
+      J.Changed := True;
    end Set_Resources;
 
    procedure Set_Slots (J : in out Changed_Job; To : String) is
    begin
       J.Slots := SGE.Ranges.To_Step_Range_List (To);
+      J.Changed := True;
    end Set_Slots;
 
    procedure Set_Slots (J : in out Changed_Job; To : SGE.Ranges.Step_Range_List) is
    begin
       J.Slots := To;
+      J.Changed := True;
    end Set_Slots;
+
+   procedure Set_Slots_Max (J : in out Changed_Job; To : Positive) is
+      Min : Positive := 1;
+   begin
+      if not J.Slots.Is_Empty then
+         Min := J.Slots.Min;
+         J.Slots.Clear;
+      end if;
+      J.Slots.Append (SGE.Ranges.New_Range (Min  => Min,
+                                 Step => 1,
+                                 Max  => To));
+      J.Changed := True;
+   end Set_Slots_Max;
+
+   procedure Set_Slots_Min (J : in out Changed_Job; To : Positive) is
+      Max : Positive := 1_024;
+   begin
+      if not J.Slots.Is_Empty then
+         Max := J.Slots.Max;
+         J.Slots.Clear;
+      end if;
+      J.Slots.Append (SGE.Ranges.New_Range (Min  => To,
+                                 Step => 1,
+                                 Max  => Max));
+      J.Changed := True;
+   end Set_Slots_Min;
 
    procedure Shift (J : Natural; To : String) is
    begin
