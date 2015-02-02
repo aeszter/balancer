@@ -145,6 +145,7 @@ package body Utils is
 
    procedure Open_Message_File (Name : String) is
    begin
+      Use_Custom_File := True;
       Ada.Text_IO.Open (File => Message_File,
                         Mode => Append_File,
                         Name => Name);
@@ -157,7 +158,11 @@ package body Utils is
 
    procedure Put_Line (Item : String) is
    begin
-      Ada.Text_IO.Put_Line (File => Message_File, Item => Item);
+      if Use_Custom_File then
+         Ada.Text_IO.Put_Line (File => Message_File, Item => Item);
+      else
+         Ada.Text_IO.Put_Line (Item => Item);
+      end if;
    end Put_Line;
 
    function Random return Float_Random.Uniformly_Distributed is
