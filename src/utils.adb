@@ -82,7 +82,9 @@ package body Utils is
    function Dry_Run (Message : String) return Boolean is
    begin
       if not Action then
-         Ada.Text_IO.Put_Line (Message);
+         Put_Line (Message);
+      else
+         Trace (Message);
       end if;
       return not Action;
    end Dry_Run;
