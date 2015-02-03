@@ -4,7 +4,7 @@ with SGE.Utils;
 with Ada.Text_IO;
 
 package Utils is
-   Version : String := "v3.0.1";
+   Version : String := "develop";
 
    Assumption_Error : exception;
 
