@@ -27,6 +27,7 @@ package Sanitiser is
    procedure Set_Property (Dest : in out Operation; Prop : Kind);
    procedure Set_Operator (Dest : in out Operation; Op : Operator);
    procedure Set_Literal (Dest : in out Operation; Lit : Multitype);
+   procedure Invert (Dest : in out Operation);
 
    type Operation_List is tagged private;
    procedure Append (Container : in out Operation_List; New_Item : Operation);
@@ -75,6 +76,7 @@ private
       Object : Kind;
       Oper   : Operator;
       Value  : Multitype;
+      Inverted : Boolean := False;
    end record;
 
    package Operation_Lists is new Ada.Containers.Doubly_Linked_Lists (Element_Type => Operation);

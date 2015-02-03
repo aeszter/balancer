@@ -94,7 +94,9 @@ PRODUCTIONS
    Condition<C : out Operation>        (. Lit :  Multitype;
                                           Op :  Operator;
                                           Prop :  Kind; .)
-   = Property<Prop>                    (. Set_Property (C, Prop); .)
+   = [ "not"                           (. Invert (C); .)
+     ]
+     Property<Prop>                    (. Set_Property (C, Prop); .)
      RelOp<Op>                         (. Set_Operator (C, Op); .)
      Literal<Lit>                      (. Set_Literal (C, Lit); .).
 
