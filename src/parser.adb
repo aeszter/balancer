@@ -93,9 +93,10 @@ package body Parser is
 
    procedure Alter_Job
      (ID                 : Positive;
-      Insecure_Resources : String := "";
-      PE                 : String := "";
-      Slots              : String := "";
+                        Insecure_Resources : String := "";
+                        PE                 : String := "";
+                        Slots              : String := "";
+                        Reservation        : Tri_State := Undecided;
       Timestamp_Name     : String)
    is
       Requirements : Unbounded_String := To_Unbounded_String (
@@ -118,6 +119,13 @@ package body Parser is
       if Insecure_Resources /= "" then
          Requirements := Requirements & " -l " & Insecure_Resources;
       end if;
+      case Reservation is
+         when True =>
+            Requirements := Requirements & " R=y";
+         when False =>
+            Requirements := Requirements & " R=n";
+         when Undecided => null;
+      end case;
       if not Utils.Dry_Run ("qalter " & To_String (Requirements) & Timestamp) then
          SGE.Parser.Setup_No_XML (Command => "qalter",
                                   Subpath => "/bin/linux-x64/",

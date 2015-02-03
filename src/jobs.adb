@@ -48,6 +48,7 @@ package body Jobs is
                         Insecure_Resources => Resources.To_Requirement (J.Resources),
                         Slots              => SGE.Ranges.To_SGE_Input (J.Slots),
                         PE                 => To_String (J.PE),
+                        Reservation        => J.Reserve,
                         Timestamp_Name => Timestamp (J));
    end Apply_Changes;
 
