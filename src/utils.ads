@@ -4,7 +4,7 @@ with SGE.Utils;
 with Ada.Text_IO;
 
 package Utils is
-   Version : String := "v3.0";
+   Version : String := "v3.0.1";
 
    Assumption_Error : exception;
 
@@ -52,4 +52,5 @@ private
    Manual_Jobs      : SGE.Utils.ID_List;
    Current_Manual_Job : SGE.Utils.ID_Lists.Cursor;
    Message_File     : Ada.Text_IO.File_Type;
+   Use_Custom_File  : Boolean := False;
 end Utils;
