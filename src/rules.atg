@@ -146,7 +146,8 @@ PRODUCTIONS
    NumRange<R : out  Step_Range> (. S : String_Ptr; .)
    = number                            (. RulesS.Get_Name (RulesS.pos, RulesS.len, S);
                                          R.Min := Utils.To_Number (S.all);
-                                         R.Max := R.Min; .)
+                                         R.Max := R.Min;
+                                         R.Step := 1; .)
      [ "-" number                      (. RulesS.Get_Name (RulesS.pos, RulesS.len, S);
                                          R.Max := Utils.To_Number (S.all); .)
      ].
