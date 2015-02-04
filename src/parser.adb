@@ -121,9 +121,9 @@ package body Parser is
       end if;
       case Reservation is
          when True =>
-            Requirements := Requirements & " R=y";
+            Requirements := Requirements & " -R y";
          when False =>
-            Requirements := Requirements & " R=n";
+            Requirements := Requirements & " -R n";
          when Undecided => null;
       end case;
       if not Utils.Dry_Run ("qalter " & To_String (Requirements) & Timestamp) then
