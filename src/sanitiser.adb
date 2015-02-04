@@ -333,7 +333,7 @@ package body Sanitiser is
             when add
                => Utils.Trace ("Add " & To_String (O.Value) & " to " & O.Object'Img);
             when remove
-               => Utils.Trace ("Remove "& To_String (O.Value) & " from " & O.Object'Img);
+               => Utils.Trace ("Remove " & To_String (O.Value) & " from " & O.Object'Img);
          end case;
       end Print_Operation;
 
@@ -351,7 +351,7 @@ package body Sanitiser is
       Rules.Iterate (Print_Rule'Access);
    exception
       when E : others =>
-         Put_Line ("Could not read " & Rules_File & ". Jobs will not be sanitised.");
+         Put_Line ("Could not read " & Rules_File & ". Jobs will not be fully sanitised.");
          Put_Line (File => Standard_Error,
                   Item => Exception_Name (E) & ": " & Exception_Message (E));
    end Init;
