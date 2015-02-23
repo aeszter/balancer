@@ -145,10 +145,12 @@ package body Parser is
                   Length : constant Positive := Modified_Context'Length;
                begin
                   if Message = "denied: former resource request on consumable "
-                    & """gpu"" of running job lacks in new resource request" then
+                    & """gpu"" of running job lacks in new resource request"
+                  then
                      null; -- expected message even for qw jobs
                   elsif Message = "denied: resource request on consumable "
-                    & """gpu"" of running job was not contained former resource request" then
+                    & """gpu"" of running job was not contained former resource request"
+                  then
                      -- typo (missing "in") is part of qalter
                      null; -- expected message even for qw jobs
                   elsif Message (Message'First .. Message'First + Length - 1) = Modified_Context then
@@ -187,7 +189,8 @@ package body Parser is
       begin
          if Char = '-' and then
               Where > Output'First and then
-           Ada.Characters.Handling.Is_Alphanumeric (Output (Where - 1)) then
+           Ada.Characters.Handling.Is_Alphanumeric (Output (Where - 1))
+         then
             return True; -- a dash, not the first character, and the previous one is alphanumeric
             --  so this does not start a commandline switch
          else
@@ -209,7 +212,8 @@ package body Parser is
          if not Ada.Characters.Handling.Is_Letter (Output (Pos))
            and then not Ada.Characters.Handling.Is_Decimal_Digit (Output (Pos))
            and then Output (Pos) /= ','
-           and then not Is_Harmless_Dash (Char  => Output (Pos), Where => Pos) then
+           and then not Is_Harmless_Dash (Char  => Output (Pos), Where => Pos)
+         then
             if Is_Suspicious (Output (Pos)) then
                raise Security_Error with "Suspicious character '"
                  & Output (Pos) & "' encountered";

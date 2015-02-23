@@ -127,7 +127,8 @@ package body Jobs is
       elsif Queued_For_GPU (J) then
          if Partitions.CPU_Available (For_Job      => J,
                                       Mark_As_Used => True,
-                                      Fulfilling => Partitions.Minimum) then
+                                      Fulfilling   => Partitions.Minimum)
+         then
             Migrate_To_CPU (J);
             Statistics.To_CPU;
          else

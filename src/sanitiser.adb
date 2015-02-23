@@ -149,7 +149,8 @@ package body Sanitiser is
       begin
          if Jobs.Match (J         => J,
                         Old_State => The_Rule.From,
-                        New_State => The_Rule.To) then
+                        New_State => The_Rule.To)
+         then
             Utils.Trace ("Found a match: " & To_String (The_Rule.Name));
             Add_Message (J, To_String (The_Rule.Name));
             Apply_Branch_Chain (J, The_Rule.Contents);
@@ -417,7 +418,8 @@ package body Sanitiser is
    procedure Set_String (L : out Multitype; Value : String) is
    begin
       if Value (Value'First) /= '"' or else
-        Value (Value'Last) /= '"' then
+        Value (Value'Last) /= '"'
+      then
          raise Rule_Error with "String not properly quoted: "
            & Value;
       end if;

@@ -49,7 +49,8 @@ package body JSV is
                                Modifier  : out Modifiers) is
    begin
       if State = starting or else
-        State = calculating then
+        State = calculating
+      then
          Utils.Error_Message ("Get_Next_Command called in state """ & State'Img & """");
       else
          declare
@@ -141,7 +142,8 @@ package body JSV is
          case Cmd is
             when start =>
                if State = undefined or else
-                 State = result_sent then
+                 State = result_sent
+               then
                   State := starting;
                   Init_Job_Data;
                   Send (Command => started);
