@@ -99,6 +99,7 @@ package body Parser is
       function PE_String return Trusted_String;
       function Reserve_String return Trusted_String;
       function Resource_String return Trusted_String;
+      function Starts_With (Source, Pattern : String) return Boolean;
 
       ID_String : constant Trusted_String := Sanitise (Ada.Strings.Fixed.Trim (Source => ID'Img,
                                                                                Side   => Ada.Strings.Left));
@@ -137,6 +138,15 @@ package body Parser is
          end if;
       end Resource_String;
 
+      function Starts_With (Source, Pattern : String) return Boolean is
+         Start : constant Natural := Source'First;
+         Stop : constant Natural := Source'First + Pattern'Length - 1;
+      begin
+         if Stop > Source'Last then
+            return False;
+         end if;
+         return Source (Start .. Stop) = Pattern;
+      end Starts_With;
 
    begin
       if Slots /= "" and then PE = "" then
@@ -163,8 +173,6 @@ package body Parser is
             when 1 =>
                declare
                   Message : constant String := Output.Current;
-                  Modified_Context : constant String := "modified context of job";
-                  Length : constant Positive := Modified_Context'Length;
                begin
                   if Message = "denied: former resource request on consumable "
                     & """gpu"" of running job lacks in new resource request"
@@ -175,7 +183,9 @@ package body Parser is
                   then
                      -- typo (missing "in") is part of qalter
                      null; -- expected message even for qw jobs
-                  elsif Message (Message'First .. Message'First + Length - 1) = Modified_Context then
+                  elsif Starts_With (Message, "modified context of job") then
+                     null; -- signifies success
+                  elsif Starts_With (Message, "modified reservation behaviour of job") then
                      null; -- signifies success
                   else
                      Utils.Verbose_Message ("Exit Status 1, evaluate output (Bug #1849)");
