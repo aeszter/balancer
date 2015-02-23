@@ -3,6 +3,7 @@ with SGE.Queues;
 with Parser;
 with Utils;
 with SGE.Resources;
+with SGE.Taint; use SGE.Taint;
 
 package body Partitions is
    use Partitions.Catalogs;
@@ -157,7 +158,8 @@ package body Partitions is
 
    begin
       Utils.Debug ("--> Partitions.Init");
-      SGE_Out := Setup (Selector => Parser.Resource_Selector & " -l h_rt=24:00:00");
+      SGE_Out := Setup (Command => Cmd_Qstat,
+                        Selector => Parser.Resource_Selector & Implicit_Trust (" -l h_rt=24:00:00"));
 
       SGE.Queues.Append_List (Get_Elements_By_Tag_Name (SGE_Out, "Queue-List"));
       SGE.Parser.Free;
