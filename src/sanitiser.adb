@@ -149,7 +149,8 @@ package body Sanitiser is
       begin
          if Jobs.Match (J         => J,
                         Old_State => The_Rule.From,
-                        New_State => The_Rule.To) then
+                        New_State => The_Rule.To)
+         then
             Utils.Trace ("Found a match: " & To_String (The_Rule.Name));
             Add_Message (J, To_String (The_Rule.Name));
             Apply_Branch_Chain (J, The_Rule.Contents);
@@ -248,17 +249,23 @@ package body Sanitiser is
 
       procedure Evaluate_One (Position : Operation_Lists.Cursor) is
          Condition : constant Operation := Element (Position);
+         Local_Result : Boolean;
       begin
          case Condition.Object is
             when PE
-               => Result := Result and then Check_PE (J, Condition.Oper, Condition.Value);
+               => Local_Result := Check_PE (J, Condition.Oper, Condition.Value);
             when Slots
-               => Result := Result and then Check_Slots (J, Condition.Oper, Condition.Value);
+               => Local_Result := Check_Slots (J, Condition.Oper, Condition.Value);
             when Resources
-               => Result := Result and then Check_Resources (J, Condition.Oper, Condition.Value);
+               => Local_Result := Check_Resources (J, Condition.Oper, Condition.Value);
             when Reservation
-               => Result := Result and then Check_Reservation (J, Condition.Oper, Condition.Value);
+               => Local_Result := Check_Reservation (J, Condition.Oper, Condition.Value);
          end case;
+         if Condition.Inverted then
+            Result := Result and not Local_Result;
+         else
+            Result := Result and Local_Result;
+         end if;
       end Evaluate_One;
 
    begin
@@ -308,6 +315,9 @@ package body Sanitiser is
       procedure Print_Operation (Position : Operation_Lists.Cursor) is
          O : constant Operation := Operation_Lists.Element (Position);
       begin
+         if O.Inverted then
+            Utils.Trace (" not ");
+         end if;
          case O.Oper is
             when equal
                => Utils.Trace (O.Object'Img & "=" & To_String (O.Value));
@@ -324,7 +334,7 @@ package body Sanitiser is
             when add
                => Utils.Trace ("Add " & To_String (O.Value) & " to " & O.Object'Img);
             when remove
-               => Utils.Trace ("Remove "& To_String (O.Value) & " from " & O.Object'Img);
+               => Utils.Trace ("Remove " & To_String (O.Value) & " from " & O.Object'Img);
          end case;
       end Print_Operation;
 
@@ -342,10 +352,15 @@ package body Sanitiser is
       Rules.Iterate (Print_Rule'Access);
    exception
       when E : others =>
-         Put_Line ("Could not read " & Rules_File & ". Jobs will not be sanitised.");
+         Put_Line ("Could not read " & Rules_File & ". Jobs will not be fully sanitised.");
          Put_Line (File => Standard_Error,
                   Item => Exception_Name (E) & ": " & Exception_Message (E));
    end Init;
+
+   procedure Invert (Dest : in out Operation) is
+   begin
+      Dest.Inverted := True;
+   end Invert;
 
    procedure Set_Action (Dest : in out Decision; Action : Operation_List) is
    begin
@@ -403,7 +418,8 @@ package body Sanitiser is
    procedure Set_String (L : out Multitype; Value : String) is
    begin
       if Value (Value'First) /= '"' or else
-        Value (Value'Last) /= '"' then
+        Value (Value'Last) /= '"'
+      then
          raise Rule_Error with "String not properly quoted: "
            & Value;
       end if;

@@ -17,6 +17,7 @@ with Utils;
 with SGE.Quota;
 with SGE.Context;
 with Sanitiser;
+with SGE.Taint; use SGE.Taint;
 
 
 
@@ -25,7 +26,7 @@ package body Jobs is
    procedure Balance_CPU_GPU (J : Job);
    function Comma_Convert (Encoded_String : String) return String;
    procedure Apply_Changes (Position : Changed_Lists.Cursor);
-   function Timestamp (J : Changed_Job) return String;
+   function Timestamp (J : Changed_Job) return Trusted_String;
 
    procedure Add_Message (J : in out Changed_Job; Message : String) is
    begin
@@ -48,6 +49,7 @@ package body Jobs is
                         Insecure_Resources => Resources.To_Requirement (J.Resources),
                         Slots              => SGE.Ranges.To_SGE_Input (J.Slots),
                         PE                 => To_String (J.PE),
+                        Reservation        => J.Reserve,
                         Timestamp_Name => Timestamp (J));
    end Apply_Changes;
 
@@ -126,7 +128,8 @@ package body Jobs is
       elsif Queued_For_GPU (J) then
          if Partitions.CPU_Available (For_Job      => J,
                                       Mark_As_Used => True,
-                                      Fulfilling => Partitions.Minimum) then
+                                      Fulfilling   => Partitions.Minimum)
+         then
             Migrate_To_CPU (J);
             Statistics.To_CPU;
          else
@@ -248,15 +251,17 @@ package body Jobs is
       end Not_On_Hold;
 
    begin
-      SGE_Out := SGE.Parser.Setup (Selector => "-u * -r -s p");
+      SGE_Out := SGE.Parser.Setup (Command => Cmd_Qstat,
+                                   Selector => Implicit_Trust ("-u * -r -s p"));
       Append_List (SGE.Parser.Get_Job_Nodes_From_Qstat_U (SGE_Out));
       SGE.Parser.Free;
-      SGE_Out := SGE.Parser.Setup (Selector => "-j *");
+      SGE_Out := SGE.Parser.Setup (Command => Cmd_Qstat,
+                                   Selector => Implicit_Trust ("-j *"));
       Create_Overlay (SGE.Parser.Get_Job_Nodes_From_Qstat_J (SGE_Out));
       Apply_Overlay;
       SGE.Parser.Free;
-      SGE_Out := SGE.Parser.Setup (Command  => "qquota",
-                                   Selector => "-l slots -u *");
+      SGE_Out := SGE.Parser.Setup (Command  => Cmd_Qquota,
+                                   Selector => Implicit_Trust ("-l slots -u *"));
       SGE.Quota.Append_List (SGE.Parser.Get_Elements_By_Tag_Name (Doc      => SGE_Out,
                                                                   Tag_Name => "qquota_rule"));
       SGE.Parser.Free;
@@ -464,11 +469,11 @@ package body Jobs is
       end if;
    end Shift;
 
-   function Timestamp (J : Changed_Job) return String is
+   function Timestamp (J : Changed_Job) return Trusted_String is
    begin
       case J.New_State is
-         when cpu => return "LASTMIG";
-         when gpu => return "LASTMIG";
+         when cpu => return Implicit_Trust ("LASTMIG");
+         when gpu => return Implicit_Trust ("LASTMIG");
          when any =>
             raise Constraint_Error with "Job" & J.ID'Img & " has illegal state ""any""";
          when undefined =>

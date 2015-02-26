@@ -3,6 +3,7 @@ with SGE.Queues;
 with Parser;
 with Utils;
 with SGE.Resources;
+with SGE.Taint; use SGE.Taint;
 
 package body Partitions is
    use Partitions.Catalogs;
@@ -39,7 +40,8 @@ package body Partitions is
                          & SGE.Host_Properties.To_String (Card.Partition));
             return True;
          elsif SGE.Host_Properties.Get_Network (Card.Partition) /= SGE.Resources.none and then
-           Integer (Card.Free_Hosts) * Card.Free_Slots >= Minimum_Slots then
+           Integer (Card.Free_Hosts) * Card.Free_Slots >= Minimum_Slots
+         then
             Utils.Trace ("Found" & Card.Free_Hosts'Img & " nodes with"
                          & Card.Free_Slots'Img & " free slots in "
                          & SGE.Host_Properties.To_String (Card.Partition));
@@ -156,7 +158,8 @@ package body Partitions is
 
    begin
       Utils.Debug ("--> Partitions.Init");
-      SGE_Out := Setup (Selector => Parser.Resource_Selector & " -l h_rt=24:00:00");
+      SGE_Out := Setup (Command => Cmd_Qstat,
+                        Selector => Parser.Resource_Selector & Implicit_Trust (" -l h_rt=24:00:00"));
 
       SGE.Queues.Append_List (Get_Elements_By_Tag_Name (SGE_Out, "Queue-List"));
       SGE.Parser.Free;
@@ -197,7 +200,8 @@ package body Partitions is
    begin
       while Position /= Catalogs.No_Element loop
          if Element (Position) > 0
-           and then Selector (Key (Position)) then
+           and then Selector (Key (Position))
+         then
             Found := True;
             if Mark_As_Used then
                Utils.Trace ("...and using one of" & Element (Position)'Img);

@@ -1,4 +1,3 @@
-with Ada.Characters.Handling;
 with Ada.Strings.Fixed;
 with Ada.Text_IO;
 with Ada.Exceptions; use Ada.Exceptions;
@@ -12,17 +11,15 @@ with SGE.Context;
 
 package body Parser is
 
-   function Sanitise (Input : String) return String;
-   -- Note: this function is security-critical
-   -- Make sure to call this on all data read from Context and passed to
-   -- qalter (or other shell commands)
-
    procedure Add_Pending_Since (J : Job) is
       function Is_OK (Input : String) return Boolean;
 
       Output : SGE.Spread_Sheets.Spread_Sheet;
-      Add : constant String := Get_ID (J) & " -ac PENDINGSINCE=" & Utils.Now;
-      Remove : constant String := Get_ID (J) & " -dc PENDINGSINCE";
+      Add    : constant Trusted_String := Sanitise (Get_ID (J))
+                 & Implicit_Trust (" -ac PENDINGSINCE=")
+                 & Sanitise (Utils.Now);
+      Remove : constant Trusted_String := Sanitise (Get_ID (J))
+                 & Implicit_Trust (" -dc PENDINGSINCE");
       Existing : constant String := Get_Context (J, SGE.Context.Pending_Since);
       Exit_Status : Natural;
       pragma Unreferenced (Output);
@@ -44,9 +41,9 @@ package body Parser is
          return;
       end if;
       if Existing = "" then
-         if not Utils.Dry_Run ("qalter "  & Add) then
-            SGE.Parser.Setup_No_XML (Command     => "qalter",
-                                     Subpath     => "/bin/linux-x64/",
+         if not Utils.Dry_Run ("qalter " & Value (Add)) then
+            SGE.Parser.Setup_No_XML (Command     => Trust_As_Command ("qalter"),
+                                     Subpath     => Implicit_Trust ("/bin/linux-x64/"),
                                      Selector    => Add,
                                      Output      => Output,
                                      Exit_Status => Exit_Status);
@@ -62,9 +59,9 @@ package body Parser is
          end if;
       elsif not Is_OK (Existing) then
          Utils.Verbose_Message ("removing corrupt timestamp");
-         if not Utils.Dry_Run ("qalter "  & Remove) then
-            SGE.Parser.Setup_No_XML (Command     => "qalter",
-                                     Subpath     => "/bin/linux-x64/",
+         if not Utils.Dry_Run ("qalter "  & Value (Remove)) then
+            SGE.Parser.Setup_No_XML (Command     => Trust_As_Command ("qalter"),
+                                     Subpath     => Implicit_Trust ("/bin/linux-x64/"),
                                      Selector    => Remove,
                                      Output      => Output,
                                      Exit_Status => Exit_Status);
@@ -93,17 +90,64 @@ package body Parser is
 
    procedure Alter_Job
      (ID                 : Positive;
-      Insecure_Resources : String := "";
-      PE                 : String := "";
-      Slots              : String := "";
-      Timestamp_Name     : String)
+                        Insecure_Resources : String := "";
+                        PE                 : String := "";
+                        Slots              : String := "";
+                        Reservation        : Tri_State := Undecided;
+      Timestamp_Name     : Trusted_String)
    is
-      Requirements : Unbounded_String := To_Unbounded_String (
-            Ada.Strings.Fixed.Trim (Source => ID'Img,
-                                      Side => Ada.Strings.Left));
+      function PE_String return Trusted_String;
+      function Reserve_String return Trusted_String;
+      function Resource_String return Trusted_String;
+      function Starts_With (Source, Pattern : String) return Boolean;
+
+      ID_String : constant Trusted_String := Sanitise (Ada.Strings.Fixed.Trim (Source => ID'Img,
+                                                                               Side   => Ada.Strings.Left));
       Output       : SGE.Spread_Sheets.Spread_Sheet;
-      Timestamp    : constant String := " -ac " & Timestamp_Name & "=" & Utils.Now;
+      Timestamp    : constant Trusted_String := Implicit_Trust (" -ac ")
+                       & Timestamp_Name & Implicit_Trust ("=") & Sanitise (Utils.Now);
       Exit_Status  : Natural;
+
+      function PE_String return Trusted_String is
+      begin
+         if PE = "" then
+            return Implicit_Trust ("");
+         else
+            return Implicit_Trust (" -pe ") & Sanitise (PE) & Implicit_Trust (" ") & Sanitise (Slots);
+         end if;
+      end PE_String;
+
+      function Reserve_String return Trusted_String is
+      begin
+         case Reservation is
+         when True =>
+            return Implicit_Trust (" -R y");
+         when False =>
+            return Implicit_Trust (" -R n");
+         when Undecided =>
+            return Implicit_Trust ("");
+         end case;
+      end Reserve_String;
+
+      function Resource_String return Trusted_String is
+      begin
+         if Insecure_Resources /= "" then
+            return Implicit_Trust (" -l ") & Sanitise (Insecure_Resources);
+         else
+            return Implicit_Trust ("");
+         end if;
+      end Resource_String;
+
+      function Starts_With (Source, Pattern : String) return Boolean is
+         Start : constant Natural := Source'First;
+         Stop : constant Natural := Source'First + Pattern'Length - 1;
+      begin
+         if Stop > Source'Last then
+            return False;
+         end if;
+         return Source (Start .. Stop) = Pattern;
+      end Starts_With;
+
    begin
       if Slots /= "" and then PE = "" then
          raise Jobs.Support_Error with "no PE found";
@@ -111,17 +155,13 @@ package body Parser is
       if PE /= "" and then Slots = "" then
          raise Jobs.Support_Error with "no slot range found";
       end if;
-      if PE /= "" then
-         Requirements := Requirements & " -pe " & PE &
-                                         " " & Sanitise (Slots);
-      end if;
-      if Insecure_Resources /= "" then
-         Requirements := Requirements & " -l " & Insecure_Resources;
-      end if;
-      if not Utils.Dry_Run ("qalter " & To_String (Requirements) & Timestamp) then
-         SGE.Parser.Setup_No_XML (Command => "qalter",
-                                  Subpath => "/bin/linux-x64/",
-                                  Selector => To_String (Requirements) & Timestamp,
+      if not Utils.Dry_Run ("qalter " & Value (ID_String & PE_String
+                            & Resource_String & Reserve_String & Timestamp))
+      then
+         SGE.Parser.Setup_No_XML (Command => Trust_As_Command ("qalter"),
+                                  Subpath => Implicit_Trust ("/bin/linux-x64/"),
+                                  Selector => ID_String & PE_String
+                                  & Resource_String & Reserve_String & Timestamp,
                                   Output      => Output,
                                   Exit_Status => Exit_Status);
          Output.Rewind;
@@ -133,17 +173,19 @@ package body Parser is
             when 1 =>
                declare
                   Message : constant String := Output.Current;
-                  Modified_Context : constant String := "modified context of job";
-                  Length : constant Positive := Modified_Context'Length;
                begin
                   if Message = "denied: former resource request on consumable "
-                    & """gpu"" of running job lacks in new resource request" then
+                    & """gpu"" of running job lacks in new resource request"
+                  then
                      null; -- expected message even for qw jobs
                   elsif Message = "denied: resource request on consumable "
-                    & """gpu"" of running job was not contained former resource request" then
+                    & """gpu"" of running job was not contained former resource request"
+                  then
                      -- typo (missing "in") is part of qalter
                      null; -- expected message even for qw jobs
-                  elsif Message (Message'First .. Message'First + Length - 1) = Modified_Context then
+                  elsif Starts_With (Message, "modified context of job") then
+                     null; -- signifies success
+                  elsif Starts_With (Message, "modified reservation behaviour of job") then
                      null; -- signifies success
                   else
                      Utils.Verbose_Message ("Exit Status 1, evaluate output (Bug #1849)");
@@ -168,48 +210,5 @@ package body Parser is
          Ada.Text_IO.Put_Line ("Unknown error in Parser.Alter_Job (" & ID'Img & "): ");
          Ada.Text_IO.Put_Line (Exception_Message (E));
    end Alter_Job;
-
-   function Sanitise (Input : String) return String is
-      function Is_Harmless_Dash (Char : in Character; Where : Positive) return Boolean;
-      function Is_Suspicious (Char : Character) return Boolean;
-
-      Output : String := Input;
-
-      function Is_Harmless_Dash (Char : in Character; Where : Positive) return Boolean is
-      begin
-         if Char = '-' and then
-              Where > Output'First and then
-           Ada.Characters.Handling.Is_Alphanumeric (Output (Where - 1)) then
-            return True; -- a dash, not the first character, and the previous one is alphanumeric
-            --  so this does not start a commandline switch
-         else
-            return False; -- not a dash, or not preceded by a harmless character
-         end if;
-      end Is_Harmless_Dash;
-
-      function Is_Suspicious (Char : Character) return Boolean is
-      begin
-         case Char is
-         when '&' => return True;
-            when '\' => return True;
-            when others => return False;
-         end case;
-      end Is_Suspicious;
-
-   begin
-      for Pos in Output'Range loop
-         if not Ada.Characters.Handling.Is_Letter (Output (Pos))
-           and then not Ada.Characters.Handling.Is_Decimal_Digit (Output (Pos))
-           and then Output (Pos) /= ','
-           and then not Is_Harmless_Dash (Char  => Output (Pos), Where => Pos) then
-            if Is_Suspicious (Output (Pos)) then
-               raise Security_Error with "Suspicious character '"
-                 & Output (Pos) & "' encountered";
-            end if;
-            Output (Pos) := '_';
-         end if;
-      end loop;
-      return Output;
-   end Sanitise;
 
 end Parser;

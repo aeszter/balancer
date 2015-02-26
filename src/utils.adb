@@ -24,22 +24,28 @@ package body Utils is
    begin
       for Arg in 1 .. Argument_Count loop
          if Argument (Arg) = "-d" or else
-           Argument (Arg) = "--debug" then
+           Argument (Arg) = "--debug"
+         then
             Debug_Enabled := True;
          elsif Argument (Arg) = "-v" or else
-           Argument (Arg) = "--verbose" then
+           Argument (Arg) = "--verbose"
+         then
             Verbose := True;
          elsif Argument (Arg) = "-n" or else
-           Argument (Arg) = "--no-action" then
+           Argument (Arg) = "--no-action"
+         then
             Action := False;
          elsif Argument (Arg) = "-s" or else
-           Argument (Arg) = "--statistics" then
+           Argument (Arg) = "--statistics"
+         then
             Stats := True;
          elsif Argument (Arg) = "-p" or else
-           Argument (Arg) = "--policy" then
+           Argument (Arg) = "--policy"
+         then
             Trace_Policy := True;
          elsif Argument (Arg) = "-m" or else
-           Argument (Arg) = "--manual" then
+           Argument (Arg) = "--manual"
+         then
             Mode := manual;
             Manual_Destination := To_Unbounded_String (
                     Ada.Characters.Handling.To_Lower (Argument (Arg + 1)));
@@ -48,7 +54,8 @@ package body Utils is
             end loop;
             return;
          elsif Argument (Arg) = "-h" or else
-           Argument (Arg) = "--help" then
+           Argument (Arg) = "--help"
+         then
             Ada.Text_IO.Put_Line ("Options may be given in full or with a single hyphen "
                                   & "and the first letter only");
             Ada.Text_IO.Put_Line ("--debug gives debugging output");
@@ -82,7 +89,9 @@ package body Utils is
    function Dry_Run (Message : String) return Boolean is
    begin
       if not Action then
-         Ada.Text_IO.Put_Line (Message);
+         Put_Line (Message);
+      else
+         Trace (Message);
       end if;
       return not Action;
    end Dry_Run;
